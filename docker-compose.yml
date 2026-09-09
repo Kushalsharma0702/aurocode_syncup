@@ -1,0 +1,38 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: proposals
+      POSTGRES_PASSWORD: proposals
+      POSTGRES_DB: proposals
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U proposals"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build: ./backend
+    environment:
+      DATABASE_URL: postgresql://proposals:proposals@db:5432/proposals
+      SECRET_KEY: ${SECRET_KEY:-change-me-in-production}
+      CORS_ORIGINS: http://localhost:3000
+      UPLOAD_DIR: /data/uploads
+    volumes:
+      - uploads:/data/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "${APP_PORT:-3000}:80"
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:
+  uploads:

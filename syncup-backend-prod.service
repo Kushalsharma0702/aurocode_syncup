@@ -1,0 +1,26 @@
+[Unit]
+Description=Syncup FastAPI Backend (Production)
+After=network.target
+
+[Service]
+Type=exec
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/opt/apps/syncup/backend
+EnvironmentFile=/opt/apps/syncup/backend/.env
+ExecStartPre=/opt/apps/syncup/backend/.venv/bin/alembic upgrade head
+ExecStart=/opt/apps/syncup/backend/.venv/bin/uvicorn main:app \
+    --host 127.0.0.1 \
+    --port 8000 \
+    --workers 1 \
+    --no-access-log
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=syncup-backend
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

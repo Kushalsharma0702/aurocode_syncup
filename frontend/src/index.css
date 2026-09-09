@@ -1,0 +1,111 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * Aurocode brand palette (https://aurocode.in): near-black neutrals with a
+ * peach accent (#ffbe87). Dark is the default theme; `html.light` switches to
+ * a warm off-white variant. Values are space-separated RGB for Tailwind alpha.
+ */
+:root {
+  --c-page: 2 2 2;          /* #020202 — aurocode background */
+  --c-card: 10 10 10;
+  --c-muted: 23 23 23;      /* ~#161616 — aurocode muted */
+  --c-field: 12 12 12;
+  --c-line: 27 27 27;       /* #1b1b1b — aurocode border */
+  --c-line2: 45 45 45;
+  --c-ink: 248 248 248;     /* #f8f8f8 — aurocode foreground */
+  --c-ink2: 212 212 212;
+  --c-ink3: 163 163 163;
+  --c-ink4: 118 113 108;
+  --c-brand: 255 190 135;   /* #ffbe87 — aurocode accent */
+  --c-brand-fg: 2 2 2;
+  --c-info: 56 189 248;
+  --c-ok: 52 211 153;
+  --c-warn: 251 191 36;
+  --c-danger: 248 113 113;
+  --c-high: 251 146 60;
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.45);
+}
+
+html.light {
+  --c-page: 247 245 242;    /* warm off-white */
+  --c-card: 255 255 255;
+  --c-muted: 236 232 226;
+  --c-field: 255 255 255;
+  --c-line: 228 223 215;
+  --c-line2: 205 199 189;
+  --c-ink: 28 26 23;
+  --c-ink2: 68 64 58;
+  --c-ink3: 110 104 96;
+  --c-ink4: 152 146 136;
+  --c-brand: 180 83 9;      /* copper — the peach accent, dark enough for light bg */
+  --c-brand-fg: 255 255 255;
+  --c-info: 2 132 199;
+  --c-ok: 4 120 87;
+  --c-warn: 161 98 7;
+  --c-danger: 220 38 38;
+  --c-high: 194 65 12;
+  --shadow-card: 0 1px 3px rgba(28, 25, 20, 0.07), 0 1px 2px rgba(28, 25, 20, 0.05);
+}
+
+@layer base {
+  body {
+    @apply bg-page text-ink2 antialiased;
+  }
+  ::selection {
+    @apply bg-brand/30 text-ink;
+  }
+}
+
+@layer components {
+  .card {
+    @apply rounded-xl border border-line bg-card;
+    box-shadow: var(--shadow-card);
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-page disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-primary {
+    @apply btn bg-brand font-semibold text-brand-fg hover:bg-brand/85 focus-visible:ring-brand;
+  }
+  .btn-secondary {
+    @apply btn border border-line2 bg-card text-ink2 hover:bg-muted focus-visible:ring-line2;
+  }
+  .btn-danger {
+    @apply btn bg-danger text-white hover:bg-danger/85 focus-visible:ring-danger;
+  }
+  .input {
+    @apply w-full rounded-lg border border-line2 bg-field px-3 py-2 text-sm text-ink placeholder-ink4 focus:border-brand/60 focus:outline-none focus:ring-1 focus:ring-brand/60;
+  }
+  .label {
+    @apply mb-1 block text-sm font-medium text-ink3;
+  }
+  .table-head {
+    @apply px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-ink4;
+  }
+  .table-cell {
+    @apply px-4 py-3 text-sm text-ink2;
+  }
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  body {
+    background: white !important;
+  }
+
+  .report-print,
+  .report-print * {
+    color: black !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  .report-print .card {
+    border-color: rgba(0, 0, 0, 0.15) !important;
+  }
+}
