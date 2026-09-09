@@ -130,6 +130,13 @@ class TaskOut(TaskBase):
     project_name: str = ""
     created_at: datetime
     updated_at: datetime
+    source: str = "manual"
+    page_url: str = ""
+    pin_x: Optional[float] = None
+    pin_y: Optional[float] = None
+    has_screenshot: bool = False
+    reporter_name: str = ""
+    browser_info: str = ""
 
 
 # ---- Comments ----
@@ -299,6 +306,13 @@ class PublicReportOut(BaseModel):
     progress: int
     activities: list[PublicActivity] = []
     generated_at: datetime
+
+
+# ---- Feedback Widget ----
+
+class WidgetKeyOut(BaseModel):
+    widget_key: str
+    embed_snippet: str
 
 
 # ---- Dashboard ----

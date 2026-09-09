@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, date
 from typing import List, Optional
 
-from sqlalchemy import String, Text, ForeignKey, Boolean, DateTime, Date, Integer
+from sqlalchemy import String, Text, ForeignKey, Boolean, DateTime, Date, Integer, Float
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -44,6 +44,7 @@ class Project(Base):
     timeline: Mapped[str] = mapped_column(String(200), default="")
     budget: Mapped[str] = mapped_column(String(100), default="")
     status: Mapped[str] = mapped_column(String(20), default="Draft", index=True)
+    widget_key: Mapped[Optional[str]] = mapped_column(String(32), unique=True, nullable=True, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -67,6 +68,16 @@ class Task(Base):
     due_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Populated when this task was filed through the embeddable feedback widget
+    # rather than typed in by an admin.
+    source: Mapped[str] = mapped_column(String(10), default="manual")  # "manual" | "widget"
+    page_url: Mapped[str] = mapped_column(String(500), default="")
+    pin_x: Mapped[Optional[float]] = mapped_column(Float, nullable=True)  # % across page width, 0-100
+    pin_y: Mapped[Optional[float]] = mapped_column(Float, nullable=True)  # % down page height, 0-100
+    screenshot_filename: Mapped[str] = mapped_column(String(255), default="")
+    reporter_name: Mapped[str] = mapped_column(String(100), default="")
+    browser_info: Mapped[str] = mapped_column(String(255), default="")
 
     project: Mapped["Project"] = relationship(back_populates="tasks")
 

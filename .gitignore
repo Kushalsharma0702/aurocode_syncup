@@ -9,6 +9,7 @@ backend/.env
 # Node
 node_modules/
 frontend/dist/
+frontend/tsconfig.tsbuildinfo
 
 # Misc
 .DS_Store

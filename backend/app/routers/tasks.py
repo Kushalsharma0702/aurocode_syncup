@@ -19,6 +19,7 @@ router = APIRouter(prefix="/api", tags=["tasks"])
 def serialize_task(task: Task) -> TaskOut:
     out = TaskOut.model_validate(task)
     out.project_name = task.project.name
+    out.has_screenshot = bool(task.screenshot_filename)
     return out
 
 

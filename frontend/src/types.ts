@@ -48,6 +48,18 @@ export interface Task {
   due_date: string | null;
   created_at: string;
   updated_at: string;
+  source: "manual" | "widget";
+  page_url: string;
+  pin_x: number | null;
+  pin_y: number | null;
+  has_screenshot: boolean;
+  reporter_name: string;
+  browser_info: string;
+}
+
+export interface WidgetKey {
+  widget_key: string;
+  embed_snippet: string;
 }
 
 export interface Comment {

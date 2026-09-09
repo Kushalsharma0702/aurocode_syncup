@@ -7,12 +7,13 @@ import EmptyState from "../components/EmptyState";
 import ProgressBar from "../components/ProgressBar";
 import Spinner from "../components/Spinner";
 import TaskFormModal from "../components/TaskFormModal";
+import TaskScreenshot from "../components/TaskScreenshot";
 import { api, apiErrorMessage, getToken } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { formatDate, formatDateTime, formatFileSize } from "../lib/format";
-import { Activity, Attachment, Comment, Project, ReportLink, ReportLinkSummary, Task } from "../types";
+import { Activity, Attachment, Comment, Project, ReportLink, ReportLinkSummary, Task, WidgetKey } from "../types";
 
-type Tab = "overview" | "tasks" | "comments" | "timeline" | "attachments" | "share";
+type Tab = "overview" | "tasks" | "comments" | "timeline" | "attachments" | "share" | "feedback";
 
 const baseTabs: { id: Tab; label: string }[] = [
   { id: "overview", label: "Overview" },
@@ -28,7 +29,9 @@ export default function ProjectDetail() {
   const [tab, setTab] = useState<Tab>("overview");
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
-  const tabs = isAdmin ? [...baseTabs, { id: "share" as const, label: "Share" }] : baseTabs;
+  const tabs = isAdmin
+    ? [...baseTabs, { id: "share" as const, label: "Share" }, { id: "feedback" as const, label: "Feedback Widget" }]
+    : baseTabs;
 
   const { data: project, isLoading } = useQuery({
     queryKey: ["project", projectId],
@@ -84,6 +87,7 @@ export default function ProjectDetail() {
         {tab === "timeline" && <TimelineTab projectId={projectId} />}
         {tab === "attachments" && <AttachmentsTab projectId={projectId} />}
         {tab === "share" && <ShareTab projectId={projectId} />}
+        {tab === "feedback" && <FeedbackWidgetTab projectId={projectId} />}
       </div>
     </div>
   );
@@ -175,10 +179,18 @@ function TasksTab({ projectId }: { projectId: number }) {
             {tasks.map((task) => (
               <li key={task.id} className="p-4">
                 <div className="flex items-start justify-between gap-3">
-                  <p className="min-w-0 font-medium text-ink">{task.title}</p>
+                  <p className="min-w-0 font-medium text-ink">
+                    {task.source === "widget" && (
+                      <span className="mr-1.5 rounded bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-amber-600">
+                        Widget
+                      </span>
+                    )}
+                    {task.title}
+                  </p>
                   <TaskStatusBadge status={task.status} />
                 </div>
                 {task.description && <p className="mt-1 text-xs text-ink4">{task.description}</p>}
+                {task.source === "widget" && <WidgetTaskMeta task={task} />}
                 <p className="mt-1 text-xs text-ink4">
                   {task.assigned_to && <>{task.assigned_to} · </>}
                   due {formatDate(task.due_date)}
@@ -220,8 +232,16 @@ function TasksTab({ projectId }: { projectId: number }) {
               {tasks.map((task) => (
                 <tr key={task.id} className="hover:bg-muted/60">
                   <td className="table-cell">
-                    <p className="font-medium text-ink">{task.title}</p>
+                    <p className="font-medium text-ink">
+                      {task.source === "widget" && (
+                        <span className="mr-1.5 rounded bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-amber-600">
+                          Widget
+                        </span>
+                      )}
+                      {task.title}
+                    </p>
                     {task.description && <p className="mt-0.5 text-xs text-ink4">{task.description}</p>}
+                    {task.source === "widget" && <WidgetTaskMeta task={task} />}
                   </td>
                   <td className="table-cell">{task.assigned_to || "—"}</td>
                   <td className="table-cell"><PriorityBadge priority={task.priority} /></td>
@@ -615,6 +635,103 @@ function AttachmentsTab({ projectId }: { projectId: number }) {
         onConfirm={() => deleting && deleteMutation.mutate(deleting.id)}
         onCancel={() => setDeleting(null)}
       />
+    </div>
+  );
+}
+
+function WidgetTaskMeta({ task }: { task: Task }) {
+  return (
+    <div className="mt-1.5 space-y-1 text-xs text-ink4">
+      {task.page_url && (
+        <p className="truncate">
+          On{" "}
+          <a href={task.page_url} target="_blank" rel="noreferrer" className="text-brand hover:underline">
+            {task.page_url}
+          </a>
+        </p>
+      )}
+      {task.reporter_name && <p>Reported by {task.reporter_name}</p>}
+      {task.has_screenshot && <TaskScreenshot taskId={task.id} />}
+    </div>
+  );
+}
+
+function FeedbackWidgetTab({ projectId }: { projectId: number }) {
+  const queryClient = useQueryClient();
+  const [copied, setCopied] = useState(false);
+
+  const { data: widget, isLoading } = useQuery({
+    queryKey: ["widget-key", projectId],
+    queryFn: () =>
+      api
+        .get<WidgetKey>(`/projects/${projectId}/widget-key`)
+        .then((r) => r.data)
+        .catch((err) => {
+          if (err.response?.status === 404) return null;
+          throw err;
+        }),
+  });
+
+  const enableMutation = useMutation({
+    mutationFn: () => api.post<WidgetKey>(`/projects/${projectId}/widget-key`).then((r) => r.data),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["widget-key", projectId] }),
+  });
+
+  const disableMutation = useMutation({
+    mutationFn: () => api.delete(`/projects/${projectId}/widget-key`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["widget-key", projectId] }),
+  });
+
+  const copySnippet = () => {
+    if (!widget) return;
+    navigator.clipboard.writeText(widget.embed_snippet);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  if (isLoading) return <Spinner />;
+
+  return (
+    <div className="mx-auto max-w-3xl">
+      <div className="card p-5">
+        <h3 className="text-sm font-semibold text-ink">Client-site feedback widget</h3>
+        <p className="mt-1 text-sm text-ink3">
+          Drop this snippet on the site you're building for this client. It adds a small "Feedback" button —
+          when they click something and describe an issue, it lands here as a task, with a screenshot and the
+          exact page attached automatically.
+        </p>
+
+        {!widget ? (
+          <button className="btn-primary mt-4" onClick={() => enableMutation.mutate()} disabled={enableMutation.isPending}>
+            {enableMutation.isPending ? "Enabling…" : "Enable feedback widget"}
+          </button>
+        ) : (
+          <>
+            <div className="mt-4 rounded-md border border-line bg-muted/50 p-3">
+              <code className="block whitespace-pre-wrap break-all text-xs text-ink2">{widget.embed_snippet}</code>
+            </div>
+            <div className="mt-3 flex flex-wrap gap-3">
+              <button className="btn-primary" onClick={copySnippet}>
+                {copied ? "Copied!" : "Copy snippet"}
+              </button>
+              <button
+                className="text-sm font-medium text-ink3 hover:underline"
+                onClick={() => enableMutation.mutate()}
+                disabled={enableMutation.isPending}
+              >
+                Regenerate key
+              </button>
+              <button
+                className="text-sm font-medium text-danger hover:underline"
+                onClick={() => disableMutation.mutate()}
+                disabled={disableMutation.isPending}
+              >
+                Disable widget
+              </button>
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }
