@@ -1,10 +1,17 @@
 """Idempotent seed script — creates demo accounts and a sample proposal.
 
 Run after migrations: python seed.py
+
+Refuses to run when ENV is not a development value. The accounts below use
+well-known passwords; creating them on a production box would hand anyone who
+reads this repository an admin login.
 """
+import sys
 from datetime import date, timedelta
 
 from sqlalchemy import select
+
+from app.config import settings
 
 from app.database import SessionLocal
 from app.models import Comment, Message, Project, Task, User
@@ -14,6 +21,14 @@ from app.services.notify import notify, notify_admins
 
 
 def seed() -> None:
+    if settings.is_production:
+        print(
+            f"Refusing to seed demo accounts: ENV={settings.ENV!r} is not a development value.\n"
+            "These credentials are public. To create a real admin, use scripts/create_admin.py.",
+            file=sys.stderr,
+        )
+        raise SystemExit(1)
+
     db = SessionLocal()
     try:
         if db.scalar(select(User).where(User.username == "admin")):

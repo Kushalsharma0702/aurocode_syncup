@@ -3,6 +3,10 @@ __pycache__/
 *.pyc
 .venv/
 backend/app.db
+# WAL mode sidecars — they hold uncheckpointed database pages.
+backend/app.db-wal
+backend/app.db-shm
+backend/app.db.replaced-*
 backend/uploads/
 backend/.env
 

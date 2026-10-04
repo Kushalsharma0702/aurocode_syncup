@@ -14,7 +14,15 @@ export interface User {
   full_name: string;
   role: Role;
   is_active: boolean;
+  email: string;
+  phone: string;
   created_at: string;
+}
+
+export interface ClientAccessLink {
+  url: string;
+  expires_at: string;
+  whatsapp_url: string;
 }
 
 export interface Project {
@@ -34,6 +42,8 @@ export interface Project {
   task_count: number;
   completed_task_count: number;
   progress: number;
+  feedback_open_count: number;
+  feedback_total_count: number;
 }
 
 export interface Task {
@@ -55,11 +65,16 @@ export interface Task {
   has_screenshot: boolean;
   reporter_name: string;
   browser_info: string;
+  client_state: "Received" | "In progress" | "On hold" | "Fixed" | "Verified";
+  verified_at: string | null;
+  reopened_count: number;
+  ack_due_date: string | null;
 }
 
 export interface WidgetKey {
   widget_key: string;
   embed_snippet: string;
+  allowed_origins: string[];
 }
 
 export interface Comment {

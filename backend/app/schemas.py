@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, date
 from typing import Generic, List, Literal, TypeVar, Optional
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 ProjectStatus = Literal["Draft", "Sent", "In Review", "Approved", "Rejected", "Completed"]
 StatusType = Literal["operational", "maintenance", "degraded", "incident"]
@@ -40,6 +40,8 @@ class UserOut(BaseModel):
     full_name: str
     role: str
     is_active: bool
+    email: str = ""
+    phone: str = ""
     created_at: datetime
 
 
@@ -47,12 +49,17 @@ class UserCreate(BaseModel):
     username: str = Field(min_length=3, max_length=50, pattern=r"^[a-zA-Z0-9_.-]+$")
     full_name: str = Field(min_length=1, max_length=100)
     password: str = Field(min_length=6, max_length=128)
+    email: EmailStr | None = None
+    # Stored in E.164-ish form so it can be used for a wa.me link.
+    phone: str = Field(default="", max_length=20, pattern=r"^[0-9+\- ]*$")
 
 
 class UserUpdate(BaseModel):
     full_name: Optional[str] = Field(default=None, min_length=1, max_length=100)
     password: Optional[str] = Field(default=None, min_length=6, max_length=128)
     is_active: Optional[bool] = None
+    email: EmailStr | None = None
+    phone: Optional[str] = Field(default=None, max_length=20, pattern=r"^[0-9+\- ]*$")
 
 
 # ---- Projects ----
@@ -96,6 +103,9 @@ class ProjectOut(ProjectBase):
     task_count: int = 0
     completed_task_count: int = 0
     progress: int = 0
+    # Widget feedback is tracked separately so it never drags progress down.
+    feedback_open_count: int = 0
+    feedback_total_count: int = 0
 
 
 # ---- Tasks ----
@@ -137,6 +147,10 @@ class TaskOut(TaskBase):
     has_screenshot: bool = False
     reporter_name: str = ""
     browser_info: str = ""
+    client_state: str = "Received"
+    verified_at: Optional[datetime] = None
+    reopened_count: int = 0
+    ack_due_date: Optional[date] = None
 
 
 # ---- Comments ----
@@ -313,6 +327,23 @@ class PublicReportOut(BaseModel):
 class WidgetKeyOut(BaseModel):
     widget_key: str
     embed_snippet: str
+    allowed_origins: list[str] = []
+
+
+class WidgetOriginsUpdate(BaseModel):
+    # An empty list means "any site", which we surface as a warning in the UI.
+    origins: list[str] = Field(default_factory=list, max_length=20)
+
+
+class WidgetFunnelPoint(BaseModel):
+    event: str
+    count: int
+
+
+class ClientAccessLinkOut(BaseModel):
+    url: str
+    expires_at: datetime
+    whatsapp_url: str = ""
 
 
 # ---- Dashboard ----

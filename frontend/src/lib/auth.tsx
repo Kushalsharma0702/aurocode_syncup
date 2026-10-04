@@ -6,6 +6,7 @@ interface AuthContextValue {
   user: User | null;
   loading: boolean;
   login: (username: string, password: string) => Promise<void>;
+  loginWithLink: (token: string) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -34,6 +35,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(me.data);
   };
 
+  // Magic-link sign-in: the client never sees a password.
+  const loginWithLink = async (token: string) => {
+    const res = await api.post<{ access_token: string }>(`/auth/magic/${encodeURIComponent(token)}`);
+    setToken(res.data.access_token);
+    const me = await api.get<User>("/auth/me");
+    setUser(me.data);
+  };
+
   const logout = async () => {
     try {
       await api.post("/auth/logout");
@@ -44,7 +53,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   };
 
-  return <AuthContext.Provider value={{ user, loading, login, logout }}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={{ user, loading, login, loginWithLink, logout }}>
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
 export function useAuth(): AuthContextValue {

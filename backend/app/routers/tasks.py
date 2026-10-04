@@ -20,6 +20,7 @@ def serialize_task(task: Task) -> TaskOut:
     out = TaskOut.model_validate(task)
     out.project_name = task.project.name
     out.has_screenshot = bool(task.screenshot_filename)
+    out.client_state = task.client_state
     return out
 
 
@@ -82,14 +83,24 @@ def update_task(task_id: int, body: TaskUpdate, admin: User = Depends(require_ad
     for field, value in changes.items():
         setattr(task, field, value)
     if "status" in changes and changes["status"] != old_status:
+        # Reopening clears a previous verification so the loop starts over.
+        if changes["status"] != "Completed":
+            task.verified_at = None
         log_activity(
             db, admin, "Status Changed",
             f"Task '{task.title}' status: {old_status} → {changes['status']}", task.project_id,
         )
-        notify_project_client(
-            db, task.project, f"Task update on {task.project.name}",
-            f"'{task.title}' moved from {old_status} to {changes['status']}",
-        )
+        if task.source == "widget" and changes["status"] == "Completed":
+            # Close the loop in front of the person who reported it.
+            notify_project_client(
+                db, task.project, f"Fixed on {task.project.name}",
+                f"'{task.title}' is fixed and live. Open the project to check it and confirm.",
+            )
+        else:
+            notify_project_client(
+                db, task.project, f"Task update on {task.project.name}",
+                f"'{task.title}' moved from {old_status} to {changes['status']}",
+            )
     elif "priority" in changes and changes["priority"] != old_priority:
         log_activity(
             db, admin, "Priority Changed",

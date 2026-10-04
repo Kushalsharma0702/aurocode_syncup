@@ -14,12 +14,20 @@ router = APIRouter(prefix="/api/projects", tags=["projects"])
 
 
 def serialize_project(project: Project) -> ProjectOut:
-    total = len(project.tasks)
-    completed = sum(1 for t in project.tasks if t.status == "Completed")
+    # Progress measures delivery against the planned scope, so feedback filed
+    # through the widget is excluded. Counting it would make a project look
+    # like it was going backwards every time the client reported a bug.
+    planned = [t for t in project.tasks if t.source != "widget"]
+    total = len(planned)
+    completed = sum(1 for t in planned if t.status == "Completed")
     out = ProjectOut.model_validate(project)
     out.task_count = total
     out.completed_task_count = completed
     out.progress = round(completed / total * 100) if total else 0
+    out.feedback_open_count = sum(
+        1 for t in project.tasks if t.source == "widget" and t.status != "Completed"
+    )
+    out.feedback_total_count = len(project.tasks) - total
     return out
 
 

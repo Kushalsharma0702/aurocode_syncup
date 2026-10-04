@@ -90,8 +90,11 @@ def get_public_report(token: str, db: Session = Depends(get_db)):
     link.view_count += 1
     db.commit()
 
-    total = len(project.tasks)
-    completed = sum(1 for t in project.tasks if t.status == "Completed")
+    # Same rule as the private project view: widget feedback isn't planned
+    # scope, so it doesn't count toward progress.
+    planned = [t for t in project.tasks if t.source != "widget"]
+    total = len(planned)
+    completed = sum(1 for t in planned if t.status == "Completed")
     activities = (
         db.query(ActivityLog)
         .filter(ActivityLog.project_id == project.id)
@@ -106,7 +109,9 @@ def get_public_report(token: str, db: Session = Depends(get_db)):
         description=project.description,
         status=project.status,
         timeline=project.timeline,
-        budget=project.budget,
+        # Share links get forwarded well beyond the person they were sent to,
+        # so commercial terms stay off them unless explicitly switched on.
+        budget=project.budget if settings.REPORT_SHOW_BUDGET else "",
         task_count=total,
         completed_task_count=completed,
         progress=round(completed / total * 100) if total else 0,

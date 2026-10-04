@@ -131,10 +131,45 @@ deploy_backend() {
         sed -i "s|change-me-in-production|$SECRET|" "$BACKEND_DEST/.env"
     fi
 
+    # The app refuses to start in production with a default SECRET_KEY, so
+    # surface that here rather than letting systemd fail in a restart loop.
+    if grep -qE '^SECRET_KEY=(change-me-in-production)?$' "$BACKEND_DEST/.env"; then
+        die "SECRET_KEY in $BACKEND_DEST/.env is unset or still the default. Fix it before deploying."
+    fi
+
     # Ensure uploads dir exists and is writable by the service user
     mkdir -p "$BACKEND_DEST/uploads"
     chown -R www-data:www-data "$BACKEND_DEST"
     ok "Backend deployed."
+}
+
+# ── 3b. back up before migrating ───────────────────────────────────────────────
+backup_before_migrate() {
+    # The service runs `alembic upgrade head` on start. A schema migration is
+    # the least reversible thing this script does, so snapshot first.
+    local db="$BACKEND_DEST/app.db"
+    [[ -f "$db" ]] || { log "No existing database — skipping pre-migration backup."; return; }
+
+    local dir="/var/backups/syncup"
+    local out="$dir/pre-deploy-$(date +%Y%m%d-%H%M%S).db"
+    mkdir -p "$dir"
+
+    if command -v sqlite3 &>/dev/null; then
+        log "Backing up database before migration → $out.gz"
+        sqlite3 "$db" ".backup '$out'"
+        local check
+        check=$(sqlite3 "$out" "PRAGMA integrity_check;")
+        [[ "$check" == "ok" ]] || die "Pre-deploy backup failed integrity check ($check). Aborting."
+        gzip -f "$out"
+        ok "Pre-deploy backup verified."
+    else
+        log "sqlite3 not installed — falling back to a file copy (less safe)."
+        cp "$db" "$out"
+        gzip -f "$out"
+    fi
+
+    # Keep the last 10 pre-deploy snapshots.
+    ls -1t "$dir"/pre-deploy-*.db.gz 2>/dev/null | tail -n +11 | xargs -r rm -f
 }
 
 # ── 4. install systemd service ─────────────────────────────────────────────────
@@ -203,6 +238,7 @@ fi
 
 deploy_frontend
 deploy_backend
+backup_before_migrate
 
 if [[ "$SKIP_SERVICE" == false ]]; then
     install_service

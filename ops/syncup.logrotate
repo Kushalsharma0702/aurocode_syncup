@@ -1,0 +1,27 @@
+# /etc/logrotate.d/syncup
+# The backend logs to journald, which rotates itself. These are the files
+# SyncUp writes directly.
+
+/var/log/syncup-backup.log {
+    weekly
+    rotate 8
+    compress
+    delaycompress
+    missingok
+    notifempty
+    create 0640 root adm
+}
+
+/var/log/nginx/syncup-*.log {
+    daily
+    rotate 14
+    compress
+    delaycompress
+    missingok
+    notifempty
+    create 0640 www-data adm
+    sharedscripts
+    postrotate
+        [ -f /var/run/nginx.pid ] && kill -USR1 "$(cat /var/run/nginx.pid)"
+    endscript
+}

@@ -6,6 +6,8 @@ import Clients from "./pages/Clients";
 import Comments from "./pages/Comments";
 import Dashboard from "./pages/Dashboard";
 import Login from "./pages/Login";
+import Legal from "./pages/Legal";
+import MagicLink from "./pages/MagicLink";
 import Messages from "./pages/Messages";
 import Profile from "./pages/Profile";
 import ProjectDetail from "./pages/ProjectDetail";
@@ -21,6 +23,11 @@ export default function App() {
     <Routes>
       {/* Public, unauthenticated report link — no login required, available regardless of auth state. */}
       <Route path="/r/:token" element={<PublicReport />} />
+      {/* Magic-link sign-in. Handled before the auth gate so an expired link
+          shows a useful message instead of bouncing to the login form. */}
+      <Route path="/go/:token" element={<MagicLink />} />
+      {/* Reachable without an account — people need to read these before signing in. */}
+      <Route path="/legal/:doc" element={<Legal />} />
       <Route path="*" element={<AuthenticatedApp user={user} loading={loading} />} />
     </Routes>
   );

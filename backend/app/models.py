@@ -24,6 +24,10 @@ class User(Base):
     hashed_password: Mapped[str] = mapped_column(String(255))
     role: Mapped[str] = mapped_column(String(10), default="client")
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    # Contact details: without these a client can't be reached outside the app,
+    # so nothing the portal produces is ever seen.
+    email: Mapped[str] = mapped_column(String(255), default="", index=True)
+    phone: Mapped[str] = mapped_column(String(20), default="")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     projects: Mapped[List["Project"]] = relationship(back_populates="client")
@@ -45,6 +49,10 @@ class Project(Base):
     budget: Mapped[str] = mapped_column(String(100), default="")
     status: Mapped[str] = mapped_column(String(20), default="Draft", index=True)
     widget_key: Mapped[Optional[str]] = mapped_column(String(32), unique=True, nullable=True, index=True)
+    # Comma-separated origins the widget may post from, e.g.
+    # "https://client.com,https://www.client.com". Empty means "not yet locked
+    # down" — allowed, but flagged in the admin UI.
+    widget_origins: Mapped[str] = mapped_column(String(500), default="")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -79,7 +87,26 @@ class Task(Base):
     reporter_name: Mapped[str] = mapped_column(String(100), default="")
     browser_info: Mapped[str] = mapped_column(String(255), default="")
 
+    # Closed loop: the client who filed a pin can confirm the fix or reopen it.
+    verified_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    reopened_count: Mapped[int] = mapped_column(Integer, default=0)
+    # Shown to the reporter straight after submitting, so they know when to expect news.
+    ack_due_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+
     project: Mapped["Project"] = relationship(back_populates="tasks")
+
+    @property
+    def client_state(self) -> str:
+        """The simplified state shown to the client on their own pin."""
+        if self.verified_at is not None:
+            return "Verified"
+        if self.status == "Completed":
+            return "Fixed"
+        if self.status == "In Progress":
+            return "In progress"
+        if self.status == "Blocked":
+            return "On hold"
+        return "Received"
 
 
 class Comment(Base):
@@ -186,6 +213,43 @@ class ReportShareLink(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     project: Mapped["Project"] = relationship()
+
+
+class ClientAccessLink(Base):
+    """A magic link that signs a client in without a password.
+
+    Same hashing scheme as ReportShareLink: only the SHA-256 of the token is
+    stored, so a database leak doesn't hand out portal access.
+    """
+    __tablename__ = "client_access_links"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    created_by: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    expires_at: Mapped[datetime] = mapped_column(DateTime)
+    revoked_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    last_used_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    use_count: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    user: Mapped["User"] = relationship(foreign_keys=[user_id])
+
+
+class WidgetEvent(Base):
+    """Funnel events from the embeddable widget.
+
+    Deliberately stores no IP or user agent — this exists to answer "where do
+    clients drop off", not to profile visitors.
+    """
+    __tablename__ = "widget_events"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    project_id: Mapped[int] = mapped_column(ForeignKey("projects.id"), index=True)
+    # widget_opened | pin_started | pin_submitted | pin_abandoned | page_approved
+    event: Mapped[str] = mapped_column(String(30), index=True)
+    page_url: Mapped[str] = mapped_column(String(500), default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
 
 
 class ActivityLog(Base):

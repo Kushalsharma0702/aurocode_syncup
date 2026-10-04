@@ -56,9 +56,20 @@ export default function ProjectDetail() {
         </div>
         <div className="w-full sm:w-64">
           <p className="mb-1 text-xs font-medium text-ink3">
-            Progress · {project.completed_task_count}/{project.task_count} tasks
+            Progress · {project.completed_task_count}/{project.task_count} planned tasks
           </p>
           <ProgressBar value={project.progress} />
+          {/* Feedback is tracked separately so reporting bugs never makes the
+              project look like it went backwards. */}
+          {project.feedback_total_count > 0 && (
+            <p className="mt-1.5 text-xs text-ink4">
+              {project.feedback_open_count > 0
+                ? `${project.feedback_open_count} open feedback item${project.feedback_open_count === 1 ? "" : "s"}`
+                : "All feedback resolved"}
+              {" · "}
+              {project.feedback_total_count} total
+            </p>
+          )}
         </div>
       </div>
 
@@ -639,9 +650,51 @@ function AttachmentsTab({ projectId }: { projectId: number }) {
   );
 }
 
+const CLIENT_STATE_STYLES: Record<Task["client_state"], string> = {
+  Received: "bg-muted text-ink3 ring-line2",
+  "In progress": "bg-brand/10 text-brand ring-brand/30",
+  "On hold": "bg-warn/10 text-warn ring-warn/30",
+  Fixed: "bg-ok/10 text-ok ring-ok/30",
+  Verified: "bg-ok/15 text-ok ring-ok/40",
+};
+
+/** The simplified status the client sees on their own pin. */
+export function ClientStateBadge({ state }: { state: Task["client_state"] }) {
+  return (
+    <span
+      className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ring-1 ring-inset ${CLIENT_STATE_STYLES[state]}`}
+    >
+      {state === "Verified" ? "✓ Verified" : state}
+    </span>
+  );
+}
+
 function WidgetTaskMeta({ task }: { task: Task }) {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const isClient = user?.role === "client";
+
+  const loopMutation = useMutation({
+    mutationFn: (action: "verify" | "reopen") => api.post(`/tasks/${task.id}/${action}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["project-tasks", task.project_id] });
+      queryClient.invalidateQueries({ queryKey: ["project", task.project_id] });
+    },
+  });
+
   return (
     <div className="mt-1.5 space-y-1 text-xs text-ink4">
+      <div className="flex flex-wrap items-center gap-2">
+        <ClientStateBadge state={task.client_state} />
+        {task.reopened_count > 0 && (
+          <span className="text-[11px] text-warn">
+            reopened {task.reopened_count}×
+          </span>
+        )}
+        {task.client_state === "Received" && task.ack_due_date && (
+          <span className="text-[11px]">update due {formatDate(task.ack_due_date)}</span>
+        )}
+      </div>
       {task.page_url && (
         <p className="truncate">
           On{" "}
@@ -652,6 +705,36 @@ function WidgetTaskMeta({ task }: { task: Task }) {
       )}
       {task.reporter_name && <p>Reported by {task.reporter_name}</p>}
       {task.has_screenshot && <TaskScreenshot taskId={task.id} />}
+
+      {/* Closing the loop is the client's move — they're the only one who can
+          say whether the fix actually worked. */}
+      {isClient && task.client_state === "Fixed" && (
+        <div className="flex flex-wrap gap-2 pt-1">
+          <button
+            className="rounded-md bg-ok/10 px-2.5 py-1 text-[11px] font-medium text-ok ring-1 ring-inset ring-ok/30 hover:bg-ok/20 disabled:opacity-60"
+            onClick={() => loopMutation.mutate("verify")}
+            disabled={loopMutation.isPending}
+          >
+            Looks fixed
+          </button>
+          <button
+            className="rounded-md bg-muted px-2.5 py-1 text-[11px] font-medium text-ink2 ring-1 ring-inset ring-line2 hover:bg-line disabled:opacity-60"
+            onClick={() => loopMutation.mutate("reopen")}
+            disabled={loopMutation.isPending}
+          >
+            Still not right
+          </button>
+        </div>
+      )}
+      {isClient && task.client_state === "Verified" && (
+        <button
+          className="pt-1 text-[11px] font-medium text-ink3 hover:underline"
+          onClick={() => loopMutation.mutate("reopen")}
+          disabled={loopMutation.isPending}
+        >
+          Reopen this
+        </button>
+      )}
     </div>
   );
 }
@@ -659,6 +742,8 @@ function WidgetTaskMeta({ task }: { task: Task }) {
 function FeedbackWidgetTab({ projectId }: { projectId: number }) {
   const queryClient = useQueryClient();
   const [copied, setCopied] = useState(false);
+  const [originDraft, setOriginDraft] = useState("");
+  const [originError, setOriginError] = useState("");
 
   const { data: widget, isLoading } = useQuery({
     queryKey: ["widget-key", projectId],
@@ -681,6 +766,28 @@ function FeedbackWidgetTab({ projectId }: { projectId: number }) {
     mutationFn: () => api.delete(`/projects/${projectId}/widget-key`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["widget-key", projectId] }),
   });
+
+  const originsMutation = useMutation({
+    mutationFn: (origins: string[]) =>
+      api.put<WidgetKey>(`/projects/${projectId}/widget-origins`, { origins }).then((r) => r.data),
+    onSuccess: () => {
+      setOriginDraft("");
+      setOriginError("");
+      queryClient.invalidateQueries({ queryKey: ["widget-key", projectId] });
+    },
+    onError: (err) => setOriginError(apiErrorMessage(err)),
+  });
+
+  const addOrigin = () => {
+    const value = originDraft.trim();
+    if (!value || !widget) return;
+    originsMutation.mutate([...widget.allowed_origins, value]);
+  };
+
+  const removeOrigin = (origin: string) => {
+    if (!widget) return;
+    originsMutation.mutate(widget.allowed_origins.filter((o) => o !== origin));
+  };
 
   const copySnippet = () => {
     if (!widget) return;
@@ -728,6 +835,66 @@ function FeedbackWidgetTab({ projectId }: { projectId: number }) {
               >
                 Disable widget
               </button>
+            </div>
+
+            <div className="mt-6 border-t border-line pt-4">
+              <h4 className="text-sm font-semibold text-ink">Allowed sites</h4>
+              <p className="mt-1 text-sm text-ink3">
+                The key above is visible in your client's page source. Listing the sites it may be used from
+                stops anyone else embedding it and filing feedback into this project.
+              </p>
+
+              {widget.allowed_origins.length === 0 ? (
+                <div className="mt-3 rounded-md border border-warn/30 bg-warn/10 px-3 py-2 text-sm text-warn">
+                  Any site can currently use this key. Add your client's domain to lock it down.
+                </div>
+              ) : (
+                <ul className="mt-3 space-y-2">
+                  {widget.allowed_origins.map((origin) => (
+                    <li
+                      key={origin}
+                      className="flex items-center justify-between gap-3 rounded-md border border-line bg-muted/40 px-3 py-2"
+                    >
+                      <code className="truncate text-xs text-ink2">{origin}</code>
+                      <button
+                        className="shrink-0 text-xs font-medium text-danger hover:underline"
+                        onClick={() => removeOrigin(origin)}
+                        disabled={originsMutation.isPending}
+                      >
+                        Remove
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              {originError && (
+                <div className="mt-3 rounded-md border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger">
+                  {originError}
+                </div>
+              )}
+
+              <div className="mt-3 flex flex-wrap gap-2">
+                <input
+                  className="input flex-1"
+                  placeholder="https://clientsite.com"
+                  value={originDraft}
+                  onChange={(e) => setOriginDraft(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      addOrigin();
+                    }
+                  }}
+                />
+                <button
+                  className="btn-secondary"
+                  onClick={addOrigin}
+                  disabled={originsMutation.isPending || !originDraft.trim()}
+                >
+                  Add site
+                </button>
+              </div>
             </div>
           </>
         )}

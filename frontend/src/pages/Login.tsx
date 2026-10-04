@@ -1,5 +1,5 @@
 import { FormEvent, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { apiErrorMessage } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { ThemeToggle } from "../lib/theme";
@@ -100,6 +100,11 @@ export default function Login() {
         <div className="mt-3 flex justify-center">
           <MsmeBadge />
         </div>
+        <p className="mt-3 text-center text-[11px] text-ink4">
+          <Link to="/legal/privacy" className="hover:underline">Privacy</Link>
+          <span className="mx-1.5">·</span>
+          <Link to="/legal/terms" className="hover:underline">Terms</Link>
+        </p>
       </div>
     </div>
   );

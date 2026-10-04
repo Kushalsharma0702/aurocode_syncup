@@ -3,8 +3,10 @@
  * Embed with:
  *   <script src="https://your-syncup-host/widget.js" data-project="KEY" data-api="https://your-syncup-host/api" async></script>
  *
- * Self-contained, no build step, no dependencies until a report is actually
- * started (html2canvas is then pulled from a CDN on demand).
+ * Self-contained and dependency-free until a report is actually started, at
+ * which point html2canvas is loaded from the SyncUp host that served this
+ * script — never from a third-party CDN, so embedding the widget doesn't hand
+ * a stranger script-execution rights on the client's site.
  */
 (function () {
   "use strict";
@@ -19,20 +21,44 @@
     return;
   }
 
-  var HTML2CANVAS_URL = "https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js";
+  // Resolved against this script's own URL so it follows the host it came from.
+  var HTML2CANVAS_URL = new URL("vendor/html2canvas.min.js", scriptEl.src).href;
   var PREFIX = "su-fb-";
+  var MAX_SCREENSHOT_BYTES = 5 * 1024 * 1024;
 
-  var state = { picking: false, pin: null };
+  var state = { picking: false, pin: null, formOpen: false };
+
+  function api(path) {
+    return apiBase.replace(/\/$/, "") + "/public/widget/" + encodeURIComponent(projectKey) + path;
+  }
+
+  // Fire-and-forget funnel telemetry. Never blocks or surfaces errors.
+  function track(event, extra) {
+    try {
+      var fd = new FormData();
+      fd.append("event", event);
+      fd.append("page_url", location.href);
+      if (extra) Object.keys(extra).forEach(function (k) { fd.append(k, extra[k]); });
+      if (navigator.sendBeacon) {
+        navigator.sendBeacon(api("/event"), fd);
+      } else {
+        fetch(api("/event"), { method: "POST", body: fd, keepalive: true }).catch(function () {});
+      }
+    } catch (err) { /* telemetry must never break the page */ }
+  }
 
   // ---- styles (scoped by prefix, isolated from the host page) ----
   var style = document.createElement("style");
   style.textContent = "" +
-    "." + PREFIX + "btn{position:fixed;bottom:20px;right:20px;z-index:2147483000;" +
-      "background:#171923;color:#fff;border:none;border-radius:999px;padding:10px 16px;" +
-      "font:600 13px/1.2 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;" +
-      "box-shadow:0 4px 16px rgba(0,0,0,.25);cursor:pointer;display:flex;align-items:center;gap:6px;}" +
+    "." + PREFIX + "bar{position:fixed;bottom:20px;right:20px;z-index:2147483000;display:flex;gap:8px;" +
+      "font:600 13px/1.2 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;}" +
+    "." + PREFIX + "btn{background:#171923;color:#fff;border:none;border-radius:999px;padding:10px 16px;" +
+      "font:inherit;box-shadow:0 4px 16px rgba(0,0,0,.25);cursor:pointer;display:flex;align-items:center;gap:6px;}" +
     "." + PREFIX + "btn:hover{background:#2d3142;}" +
     "." + PREFIX + "btn.picking{background:#c53030;}" +
+    "." + PREFIX + "btn.ghost{background:#fff;color:#171923;border:1px solid #d7d9e0;}" +
+    "." + PREFIX + "btn.ghost:hover{background:#f4f5f7;}" +
+    "." + PREFIX + "btn:disabled{opacity:.6;cursor:default;}" +
     "." + PREFIX + "pin{position:absolute;z-index:2147483001;width:22px;height:22px;margin:-22px 0 0 -11px;" +
       "border-radius:50% 50% 50% 0;background:#e53e3e;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.4);" +
       "transform:rotate(-45deg);}" +
@@ -52,12 +78,16 @@
     "." + PREFIX + "card .submit{background:#171923;color:#fff;}" +
     "." + PREFIX + "card .submit:disabled{opacity:.6;cursor:default;}" +
     "." + PREFIX + "toast{position:fixed;bottom:20px;right:20px;z-index:2147483003;background:#171923;color:#fff;" +
-      "padding:10px 16px;border-radius:8px;font:13px -apple-system,sans-serif;box-shadow:0 4px 16px rgba(0,0,0,.25);}" +
+      "padding:12px 16px;border-radius:8px;max-width:300px;" +
+      "font:13px/1.45 -apple-system,sans-serif;box-shadow:0 4px 16px rgba(0,0,0,.25);}" +
     "." + PREFIX + "hint{position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:2147483001;" +
       "background:#171923;color:#fff;padding:8px 16px;border-radius:999px;font:13px -apple-system,sans-serif;}";
   document.head.appendChild(style);
 
-  // ---- floating launcher button ----
+  // ---- floating launcher ----
+  var bar = document.createElement("div");
+  bar.className = PREFIX + "bar";
+
   var btn = document.createElement("button");
   btn.className = PREFIX + "btn";
   btn.type = "button";
@@ -66,16 +96,38 @@
     if (state.picking) {
       stopPicking();
     } else {
+      track("widget_opened");
       startPicking();
     }
   });
-  if (document.body) {
-    document.body.appendChild(btn);
-  } else {
-    document.addEventListener("DOMContentLoaded", function () {
-      document.body.appendChild(btn);
-    });
-  }
+
+  // A reason to open the widget when nothing is wrong.
+  var approveBtn = document.createElement("button");
+  approveBtn.className = PREFIX + "btn ghost";
+  approveBtn.type = "button";
+  approveBtn.textContent = "👍 Looks good";
+  approveBtn.addEventListener("click", function () {
+    approveBtn.disabled = true;
+    var fd = new FormData();
+    fd.append("page_url", location.href);
+    fd.append("reporter_name", localStorage.getItem(PREFIX + "name") || "");
+    fetch(api("/approve"), { method: "POST", body: fd })
+      .then(function (res) {
+        showToast(res.ok ? "Thanks — we've noted this page looks good." : "Couldn't record that. Please try again.");
+        if (!res.ok) approveBtn.disabled = false;
+      })
+      .catch(function () {
+        showToast("Couldn't record that. Please try again.");
+        approveBtn.disabled = false;
+      });
+  });
+
+  bar.appendChild(approveBtn);
+  bar.appendChild(btn);
+
+  function mount() { document.body.appendChild(bar); }
+  if (document.body) mount();
+  else document.addEventListener("DOMContentLoaded", mount);
 
   var hintEl = null;
 
@@ -101,13 +153,14 @@
   }
 
   function onPagePick(e) {
-    if (e.target === btn) return;
+    if (bar.contains(e.target)) return;
     e.preventDefault();
     e.stopPropagation();
     var xPercent = (e.pageX / Math.max(document.documentElement.scrollWidth, 1)) * 100;
     var yPercent = (e.pageY / Math.max(document.documentElement.scrollHeight, 1)) * 100;
     stopPicking();
     showPin(e.pageX, e.pageY);
+    track("pin_started");
     openForm(xPercent, yPercent);
   }
 
@@ -125,12 +178,16 @@
   }
 
   function openForm(xPercent, yPercent) {
+    state.formOpen = true;
+    var submitted = false;
+
     var overlay = document.createElement("div");
     overlay.className = PREFIX + "overlay";
     overlay.innerHTML =
       "<div class='" + PREFIX + "card'>" +
         "<h3>What's the issue?</h3>" +
-        "<p class='sub'>A screenshot of this page is attached automatically.</p>" +
+        "<p class='sub'>A screenshot of this page is attached automatically. " +
+          "Anything you've typed into the page is blanked out first.</p>" +
         "<textarea placeholder='Describe what you see…' autofocus></textarea>" +
         "<input type='text' placeholder='Your name (optional)' />" +
         "<div class='row'>" +
@@ -145,7 +202,11 @@
     var submitBtn = overlay.querySelector(".submit");
     var cancelBtn = overlay.querySelector(".cancel");
 
+    nameInput.value = localStorage.getItem(PREFIX + "name") || "";
+
     function close() {
+      state.formOpen = false;
+      if (!submitted) track("pin_abandoned");
       overlay.remove();
       clearPin();
     }
@@ -161,20 +222,56 @@
         textarea.focus();
         return;
       }
+      submitted = true;
       submitBtn.disabled = true;
       submitBtn.textContent = "Sending…";
+      try { localStorage.setItem(PREFIX + "name", nameInput.value.trim()); } catch (err) {}
+
       captureScreenshot(function (blob) {
         submitFeedback({
           message: message,
           name: nameInput.value.trim(),
           x: xPercent,
           y: yPercent,
-        }, blob, function (ok) {
+        }, blob, function (ok, data) {
           close();
-          showToast(ok ? "Feedback sent — thank you!" : "Couldn't send feedback. Please try again.");
+          if (ok && data && data.update_by) {
+            showToast("Received — we'll update you by " + formatDate(data.update_by) + ".");
+          } else if (ok) {
+            showToast("Received — thank you!");
+          } else {
+            showToast("Couldn't send feedback. Please try again.");
+          }
         });
       });
     });
+  }
+
+  function formatDate(iso) {
+    try {
+      return new Date(iso + "T00:00:00").toLocaleDateString(undefined, { weekday: "long" });
+    } catch (err) {
+      return iso;
+    }
+  }
+
+  /* Blank out anything the visitor has typed before rasterising. Screenshots of
+     a client's own site routinely contain live form data, so the default is to
+     capture the layout, not the contents. */
+  function maskInputs(doc) {
+    var fields = doc.querySelectorAll("input, textarea, select");
+    for (var i = 0; i < fields.length; i++) {
+      var f = fields[i];
+      var type = (f.getAttribute("type") || "").toLowerCase();
+      if (type === "checkbox" || type === "radio" || type === "button" || type === "submit") continue;
+      if (f.value) f.value = "•".repeat(Math.min(String(f.value).length, 12));
+      f.setAttribute("placeholder", "");
+    }
+    // Anything the host site marks as sensitive is blanked wholesale.
+    var redact = doc.querySelectorAll("[data-syncup-redact], .syncup-redact");
+    for (var j = 0; j < redact.length; j++) {
+      redact[j].style.filter = "blur(10px)";
+    }
   }
 
   function captureScreenshot(callback) {
@@ -187,8 +284,19 @@
 
     function render() {
       try {
-        window.html2canvas(document.body, { logging: false, useCORS: true, scale: 1 })
-          .then(function (canvas) { canvas.toBlob(function (blob) { callback(blob); }, "image/png", 0.7); })
+        window.html2canvas(document.body, {
+          logging: false,
+          useCORS: true,
+          scale: 1,
+          ignoreElements: function (el) { return el === bar || el === hintEl; },
+          onclone: function (clonedDoc) { maskInputs(clonedDoc); },
+        })
+          .then(function (canvas) {
+            canvas.toBlob(function (blob) {
+              if (blob && blob.size > MAX_SCREENSHOT_BYTES) return callback(null);
+              callback(blob);
+            }, "image/png");
+          })
           .catch(function () { callback(null); });
       } catch (err) {
         callback(null);
@@ -206,12 +314,12 @@
     fd.append("browser_info", navigator.userAgent);
     if (screenshotBlob) fd.append("screenshot", screenshotBlob, "screenshot.png");
 
-    fetch(apiBase + "/public/widget/" + encodeURIComponent(projectKey) + "/feedback", {
-      method: "POST",
-      body: fd,
-    })
-      .then(function (res) { done(res.ok); })
-      .catch(function () { done(false); });
+    fetch(api("/feedback"), { method: "POST", body: fd })
+      .then(function (res) {
+        if (!res.ok) return done(false, null);
+        return res.json().then(function (body) { done(true, body); }).catch(function () { done(true, null); });
+      })
+      .catch(function () { done(false, null); });
   }
 
   function showToast(text) {
@@ -219,6 +327,6 @@
     toast.className = PREFIX + "toast";
     toast.textContent = text;
     document.body.appendChild(toast);
-    setTimeout(function () { toast.remove(); }, 3500);
+    setTimeout(function () { toast.remove(); }, 4500);
   }
 })();
