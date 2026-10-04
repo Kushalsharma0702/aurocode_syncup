@@ -102,15 +102,35 @@ deploy_backend() {
     log "Deploying backend → $BACKEND_DEST"
     mkdir -p "$BACKEND_DEST"
 
-    # Sync source (exclude dev-only dirs)
+    # Sync source (exclude dev-only dirs).
+    #
+    # app.db* is a glob on purpose. In WAL mode SQLite keeps `app.db-wal` and
+    # `app.db-shm` beside the database; copying a dev WAL next to production's
+    # own app.db makes SQLite replay dev pages into it and corrupts it. An
+    # exclude for the bare `app.db` is not enough.
     rsync -a --delete \
         --exclude='.venv' \
         --exclude='__pycache__' \
         --exclude='*.pyc' \
         --exclude='.env' \
         --exclude='app.db' \
+        --exclude='app.db-wal' \
+        --exclude='app.db-shm' \
+        --exclude='app.db.replaced-*' \
+        --exclude='*.sqlite' \
+        --exclude='*.sqlite3' \
         --exclude='uploads' \
         "$BACKEND_SRC/" "$BACKEND_DEST/"
+
+    # A WAL belonging to the running service is legitimate and holds committed
+    # transactions, so this only warns — deleting it would be the data loss it
+    # is meant to prevent. The integrity check in backup_before_migrate is the
+    # actual gate.
+    if [[ -e "$BACKEND_DEST/app.db-wal" ]] && ! systemctl is-active --quiet "$SERVICE_NAME"; then
+        log "WARNING: $BACKEND_DEST/app.db-wal exists but the service is stopped."
+        log "         If this was copied from another machine it will corrupt the database."
+        log "         Verify with: sqlite3 $BACKEND_DEST/app.db 'PRAGMA integrity_check;'"
+    fi
 
     # Create / update virtualenv
     if [[ ! -x "$BACKEND_DEST/.venv/bin/python" ]]; then
