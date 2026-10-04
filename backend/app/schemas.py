@@ -49,7 +49,7 @@ class UserCreate(BaseModel):
     username: str = Field(min_length=3, max_length=50, pattern=r"^[a-zA-Z0-9_.-]+$")
     full_name: str = Field(min_length=1, max_length=100)
     password: str = Field(min_length=6, max_length=128)
-    email: EmailStr | None = None
+    email: Optional[EmailStr] = None
     # Stored in E.164-ish form so it can be used for a wa.me link.
     phone: str = Field(default="", max_length=20, pattern=r"^[0-9+\- ]*$")
 
@@ -58,7 +58,7 @@ class UserUpdate(BaseModel):
     full_name: Optional[str] = Field(default=None, min_length=1, max_length=100)
     password: Optional[str] = Field(default=None, min_length=6, max_length=128)
     is_active: Optional[bool] = None
-    email: EmailStr | None = None
+    email: Optional[EmailStr] = None
     phone: Optional[str] = Field(default=None, max_length=20, pattern=r"^[0-9+\- ]*$")
 
 
