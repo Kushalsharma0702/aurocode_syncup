@@ -4,6 +4,7 @@ import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { ThemeToggle } from "../lib/theme";
+import MsmeBadge from "./MsmeBadge";
 import NotificationBell from "./NotificationBell";
 import StatusBanner from "./StatusBanner";
 
@@ -115,8 +116,9 @@ export default function Layout() {
           <Brand />
         </div>
         {navLinks}
-        <div className="border-t border-line px-5 py-4">
+        <div className="border-t border-line px-5 py-4 space-y-2">
           <p className="text-[10px] uppercase tracking-[0.18em] text-ink4">Code That Illuminates</p>
+          <MsmeBadge />
         </div>
       </aside>
 

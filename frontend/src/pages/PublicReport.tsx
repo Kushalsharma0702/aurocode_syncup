@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import axios from "axios";
+import MsmeBadge from "../components/MsmeBadge";
 import ProgressBar from "../components/ProgressBar";
 import Spinner from "../components/Spinner";
 import { formatDateTime } from "../lib/format";
@@ -113,6 +114,9 @@ export default function PublicReport() {
         </div>
 
         <p className="text-center text-xs text-ink4">Generated {formatDateTime(data.generated_at)}</p>
+        <div className="flex justify-center">
+          <MsmeBadge />
+        </div>
       </div>
     </div>
   );

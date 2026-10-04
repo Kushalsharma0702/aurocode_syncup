@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { apiErrorMessage } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { ThemeToggle } from "../lib/theme";
+import MsmeBadge from "../components/MsmeBadge";
 
 export default function Login() {
   const { login } = useAuth();
@@ -96,6 +97,9 @@ export default function Login() {
         <p className="mt-6 text-center text-[11px] uppercase tracking-[0.18em] text-ink4">
           Code That Illuminates
         </p>
+        <div className="mt-3 flex justify-center">
+          <MsmeBadge />
+        </div>
       </div>
     </div>
   );
