@@ -19,7 +19,7 @@ export default function Login() {
     setBusy(true);
     try {
       await login(username, password);
-      navigate("/");
+      navigate("/dashboard");
     } catch (err) {
       setError(apiErrorMessage(err));
     } finally {

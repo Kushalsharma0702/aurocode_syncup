@@ -47,9 +47,13 @@ function AuthenticatedApp({ user, loading }: { user: ReturnType<typeof useAuth>[
 
   return (
     <Routes>
-      <Route path="/login" element={<Navigate to="/" replace />} />
+      <Route path="/login" element={<Navigate to="/dashboard" replace />} />
       <Route element={<Layout />}>
+        {/* "/" is the public landing page (served by nginx). The dashboard
+            has its own path so a full page load lands on the app, not the
+            marketing site. "/" stays mapped for in-app back navigation. */}
         <Route path="/" element={<Dashboard />} />
+        <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/projects" element={<Projects />} />
         <Route path="/projects/:id" element={<ProjectDetail />} />
         <Route path="/tasks" element={<Tasks />} />
@@ -58,7 +62,7 @@ function AuthenticatedApp({ user, loading }: { user: ReturnType<typeof useAuth>[
         <Route path="/profile" element={<Profile />} />
         {user.role === "admin" && <Route path="/clients" element={<Clients />} />}
         <Route path="/status" element={<SystemStatus />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Route>
     </Routes>
   );

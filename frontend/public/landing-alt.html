@@ -1,0 +1,1360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#000000">
+<meta name="description" content="SyncUp — clients point at what's wrong on their own site, it lands in your task list with a screenshot, and they watch it get fixed.">
+<link rel="icon" type="image/png" href="/logo.png">
+<title>SyncUp</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap">
+
+<style>
+/* ───────────────────────────────────────────────────────────────
+   SyncUp — landing page.
+   Single-world dark design: deliberate, not an omission. Every
+   surface paints its own background so the page holds on any host.
+   Two accents in dialogue — coral is always the client's voice,
+   cyan is always the system responding.
+   ─────────────────────────────────────────────────────────────── */
+:root{
+  --void:#0A0E17;
+  --surface:#131A27;
+  --surface-2:#1A2333;
+  --surface-3:#222D40;
+  --line:#26324733;
+  --line-solid:#253044;
+  --ink:#EEF2F8;
+  --ink-2:#A8B4C6;
+  --ink-3:#6C7A90;
+  --ink-4:#4A5668;
+  --coral:#FF6B57;
+  --coral-dim:#FF6B5722;
+  --cyan:#3DD6C4;
+  --cyan-dim:#3DD6C422;
+  --amber:#F5B544;
+  --violet:#8B7BF7;
+  --radius:14px;
+  --maxw:1180px;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  background:var(--void);
+  color:var(--ink);
+  font-family:"Instrument Sans",system-ui,-apple-system,sans-serif;
+  font-size:17px;line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+}
+h1,h2,h3,h4,.display{font-family:"Bricolage Grotesque","Instrument Sans",sans-serif;text-wrap:balance}
+.mono{font-family:"JetBrains Mono",ui-monospace,monospace}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+:focus-visible{outline:2px solid var(--cyan);outline-offset:3px;border-radius:4px}
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 24px}
+
+.eyebrow{
+  font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.18em;
+  text-transform:uppercase;color:var(--ink-3);
+}
+
+/* ── ambient background ── */
+.aurora{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+.aurora i{
+  position:absolute;border-radius:50%;filter:blur(90px);opacity:.16;
+  animation:drift 26s ease-in-out infinite;
+}
+.aurora i:nth-child(1){width:520px;height:520px;background:var(--coral);top:-12%;left:-8%}
+.aurora i:nth-child(2){width:600px;height:600px;background:var(--cyan);top:34%;right:-14%;animation-delay:-9s}
+.aurora i:nth-child(3){width:420px;height:420px;background:var(--violet);bottom:-10%;left:28%;animation-delay:-17s}
+@keyframes drift{
+  0%,100%{transform:translate(0,0) scale(1)}
+  33%{transform:translate(50px,-40px) scale(1.12)}
+  66%{transform:translate(-40px,40px) scale(.92)}
+}
+.grid-bg{
+  position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.5;
+  background-image:linear-gradient(var(--line) 1px,transparent 1px),
+                   linear-gradient(90deg,var(--line) 1px,transparent 1px);
+  background-size:62px 62px;
+  mask-image:radial-gradient(ellipse 80% 60% at 50% 0%,#000 30%,transparent 78%);
+}
+main,header,footer{position:relative;z-index:1}
+
+/* ── nav ── */
+nav{
+  position:sticky;top:0;z-index:60;
+  backdrop-filter:blur(14px);
+  background:#0A0E17E6;
+  border-bottom:1px solid var(--line-solid);
+}
+.nav-in{display:flex;align-items:center;gap:20px;height:62px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:600;font-size:17px;letter-spacing:-.01em}
+.brand-pin{
+  width:26px;height:26px;border-radius:50% 50% 50% 3px;transform:rotate(-45deg);
+  background:linear-gradient(140deg,var(--coral),#D9452F);
+  box-shadow:0 0 16px #FF6B5755;flex:none;
+}
+.brand small{
+  font-family:"JetBrains Mono",monospace;font-size:9px;letter-spacing:.2em;
+  color:var(--ink-4);display:block;margin-top:-3px;
+}
+.nav-links{display:flex;gap:24px;margin-left:auto;align-items:center}
+.nav-links a{font-size:14.5px;color:var(--ink-2);transition:color .2s}
+.nav-links a:hover{color:var(--ink)}
+.sound-btn{
+  display:flex;align-items:center;gap:7px;font-size:12px;
+  font-family:"JetBrains Mono",monospace;letter-spacing:.06em;
+  color:var(--ink-3);border:1px solid var(--line-solid);
+  padding:6px 11px;border-radius:999px;transition:all .2s;
+}
+.sound-btn:hover{color:var(--ink);border-color:var(--ink-4)}
+.sound-btn.on{color:var(--cyan);border-color:#3DD6C455}
+.wave{display:flex;align-items:center;gap:2px;height:12px}
+.wave b{width:2px;background:currentColor;border-radius:1px;height:3px;transition:height .2s}
+.sound-btn.on .wave b{animation:eq .9s ease-in-out infinite}
+.sound-btn.on .wave b:nth-child(2){animation-delay:.15s}
+.sound-btn.on .wave b:nth-child(3){animation-delay:.3s}
+@keyframes eq{0%,100%{height:3px}50%{height:11px}}
+.cta-sm{
+  background:var(--ink);color:var(--void);font-weight:600;font-size:14px;
+  padding:8px 16px;border-radius:999px;transition:transform .18s, box-shadow .18s;
+}
+.cta-sm:hover{transform:translateY(-1px);box-shadow:0 6px 20px #00000066}
+@media(max-width:860px){.nav-links a{display:none}}
+
+/* ── hero ── */
+.hero{padding:68px 0 40px}
+.hero-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:44px}
+@media(min-width:1000px){.hero-grid{grid-template-columns:minmax(0,.86fr) minmax(0,1.14fr);gap:52px;align-items:center}}
+
+.tagline{
+  display:inline-flex;align-items:center;gap:9px;
+  border:1px solid var(--line-solid);background:var(--surface);
+  padding:6px 14px;border-radius:999px;margin-bottom:24px;
+  font-size:12.5px;color:var(--ink-2);
+}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--cyan);box-shadow:0 0 8px var(--cyan);animation:pulse 2.4s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+
+h1{
+  font-size:clamp(40px,6.4vw,70px);line-height:1.02;letter-spacing:-.034em;
+  font-weight:800;margin-bottom:22px;
+}
+h1 .pt{color:var(--coral)}
+h1 .fx{color:var(--cyan)}
+.lede{font-size:clamp(17px,2vw,19.5px);color:var(--ink-2);max-width:52ch;margin-bottom:30px}
+.lede strong{color:var(--ink);font-weight:600}
+
+.btn-row{display:flex;flex-wrap:wrap;gap:13px;align-items:center}
+.btn{
+  display:inline-flex;align-items:center;gap:9px;font-weight:600;font-size:15.5px;
+  padding:13px 24px;border-radius:999px;transition:transform .18s,box-shadow .18s,background .18s;
+}
+.btn-primary{background:linear-gradient(135deg,var(--coral),#E04A33);color:#fff;box-shadow:0 8px 28px -8px #FF6B5799}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 14px 34px -8px #FF6B57AA}
+.btn-ghost{border:1px solid var(--line-solid);color:var(--ink-2);background:var(--surface)}
+.btn-ghost:hover{color:var(--ink);border-color:var(--ink-4)}
+
+.trust{display:flex;flex-wrap:wrap;gap:18px;margin-top:28px;font-size:13px;color:var(--ink-3)}
+.trust span{display:flex;align-items:center;gap:7px}
+.tick{color:var(--cyan);font-weight:700}
+
+/* ── demo stage ── */
+.stage{display:grid;gap:14px;grid-template-columns:minmax(0,1fr)}
+@media(min-width:620px){.stage{grid-template-columns:minmax(0,1.32fr) minmax(0,1fr)}}
+
+.chrome{
+  background:var(--surface);border:1px solid var(--line-solid);border-radius:var(--radius);
+  overflow:hidden;box-shadow:0 30px 70px -28px #000000CC;
+}
+.chrome-bar{
+  display:flex;align-items:center;gap:8px;padding:10px 13px;
+  background:var(--surface-2);border-bottom:1px solid var(--line-solid);
+}
+.tl{display:flex;gap:6px}
+.tl i{width:10px;height:10px;border-radius:50%;display:block}
+.tl i:nth-child(1){background:#FF5F57}.tl i:nth-child(2){background:#FEBC2E}.tl i:nth-child(3){background:#28C840}
+.url{
+  flex:1;background:var(--void);border-radius:6px;padding:4px 10px;
+  font-family:"JetBrains Mono",monospace;font-size:10.5px;color:var(--ink-3);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.chrome-label{
+  font-family:"JetBrains Mono",monospace;font-size:9.5px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--ink-4);
+}
+
+/* fake client site */
+.site{position:relative;padding:22px 20px 62px;min-height:330px;background:
+  radial-gradient(900px 300px at 10% -10%, #1A2333, transparent 70%), var(--surface);}
+.site.picking{cursor:crosshair}
+.site.picking .hot{outline:1px dashed #FF6B5766;outline-offset:3px}
+.site.picking .hot:hover{outline:2px solid var(--coral);background:#FF6B570F}
+.site-nav{display:flex;align-items:center;gap:16px;margin-bottom:22px}
+.site-logo{font-weight:700;font-size:15px;letter-spacing:-.01em}
+.site-nav em{font-style:normal;font-size:12.5px;color:var(--ink-3)}
+.site h3{font-size:25px;line-height:1.14;letter-spacing:-.022em;margin-bottom:9px;max-width:17ch}
+.site p{font-size:13.5px;color:var(--ink-3);max-width:40ch;margin-bottom:17px}
+.site-cta{
+  display:inline-block;background:var(--cyan);color:#06221F;font-weight:700;
+  font-size:13px;padding:9px 17px;border-radius:7px;
+}
+.price-row{display:flex;gap:9px;margin-top:20px;flex-wrap:wrap}
+.price{
+  flex:1;min-width:92px;border:1px solid var(--line-solid);border-radius:9px;padding:11px;
+  background:var(--surface-2);
+}
+.price b{display:block;font-size:17px;margin-bottom:2px}
+.price span{font-size:10.5px;color:var(--ink-4)}
+
+.fab{
+  position:absolute;bottom:14px;right:14px;display:flex;gap:7px;z-index:5;
+}
+.fab button{
+  font-size:12px;font-weight:600;padding:8px 13px;border-radius:999px;
+  display:flex;align-items:center;gap:6px;transition:transform .16s,background .16s;
+}
+.fab .f-feedback{background:var(--coral);color:#fff;box-shadow:0 5px 18px -4px #FF6B57AA}
+.fab .f-feedback.active{background:#C9402B}
+.fab .f-good{background:var(--surface-3);color:var(--ink-2);border:1px solid var(--line-solid)}
+.fab button:hover{transform:translateY(-2px)}
+
+.hint{
+  position:absolute;top:12px;left:50%;transform:translateX(-50%);
+  background:var(--void);border:1px solid var(--coral);color:var(--ink);
+  font-size:11.5px;padding:7px 14px;border-radius:999px;z-index:6;white-space:nowrap;
+  animation:hintIn .3s ease-out;
+}
+@keyframes hintIn{from{opacity:0;transform:translate(-50%,-8px)}to{opacity:1;transform:translate(-50%,0)}}
+
+.pin-mark{
+  position:absolute;width:22px;height:22px;margin:-22px 0 0 -11px;z-index:7;
+  border-radius:50% 50% 50% 2px;transform:rotate(-45deg) scale(0);
+  background:linear-gradient(140deg,var(--coral),#D9452F);
+  border:2px solid #fff3;box-shadow:0 3px 14px #FF6B57AA;
+  animation:pinDrop .42s cubic-bezier(.22,1.4,.36,1) forwards;
+}
+@keyframes pinDrop{
+  0%{transform:rotate(-45deg) scale(0) translateY(-26px);opacity:0}
+  60%{transform:rotate(-45deg) scale(1.25) translateY(0);opacity:1}
+  100%{transform:rotate(-45deg) scale(1) translateY(0);opacity:1}
+}
+.ripple{
+  position:absolute;width:12px;height:12px;margin:-6px 0 0 -6px;border-radius:50%;
+  border:2px solid var(--coral);z-index:6;animation:rip .7s ease-out forwards;pointer-events:none;
+}
+@keyframes rip{to{width:74px;height:74px;margin:-37px 0 0 -37px;opacity:0}}
+
+/* feedback form overlay */
+.fb-overlay{
+  position:absolute;inset:0;background:#0A0E17D9;backdrop-filter:blur(3px);
+  display:flex;align-items:center;justify-content:center;z-index:8;padding:16px;
+  animation:fade .22s ease-out;
+}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+.fb-card{
+  background:var(--surface-2);border:1px solid var(--line-solid);border-radius:12px;
+  padding:16px;width:100%;max-width:290px;animation:cardIn .3s cubic-bezier(.2,1.2,.3,1);
+}
+@keyframes cardIn{from{opacity:0;transform:translateY(14px) scale(.96)}to{opacity:1;transform:none}}
+.fb-card h4{font-size:14.5px;margin-bottom:3px}
+.fb-card .sub{font-size:11px;color:var(--ink-4);margin-bottom:11px}
+.fb-input{
+  width:100%;background:var(--void);border:1px solid var(--line-solid);border-radius:8px;
+  padding:9px 11px;font-size:12.5px;color:var(--ink);min-height:62px;resize:none;
+  font-family:inherit;
+}
+.fb-input::placeholder{color:var(--ink-4)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
+.chip{
+  font-size:10.5px;padding:5px 9px;border-radius:999px;background:var(--surface-3);
+  color:var(--ink-3);border:1px solid var(--line-solid);transition:all .16s;
+}
+.chip:hover{color:var(--ink);border-color:var(--coral);background:var(--coral-dim)}
+.fb-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:12px}
+.fb-actions button{font-size:12.5px;font-weight:600;padding:8px 14px;border-radius:8px}
+.b-cancel{background:var(--surface-3);color:var(--ink-3)}
+.b-send{background:var(--coral);color:#fff}
+.b-send:disabled{opacity:.5;cursor:default}
+.shot-note{
+  display:flex;align-items:center;gap:6px;margin-top:9px;font-size:10px;color:var(--ink-4);
+}
+
+/* flying parcel */
+.parcel{
+  position:fixed;z-index:200;pointer-events:none;
+  background:var(--coral);color:#fff;font-size:10.5px;font-weight:700;
+  padding:6px 11px;border-radius:999px;box-shadow:0 6px 22px #FF6B5799;
+  font-family:"JetBrains Mono",monospace;
+}
+
+/* ── task panel ── */
+.panel{
+  background:var(--surface);border:1px solid var(--line-solid);border-radius:var(--radius);
+  display:flex;flex-direction:column;overflow:hidden;
+}
+.panel-head{
+  padding:12px 14px;border-bottom:1px solid var(--line-solid);background:var(--surface-2);
+  display:flex;align-items:center;gap:8px;
+}
+.panel-head b{font-size:13px;font-weight:600}
+.panel-head .count{
+  margin-left:auto;font-family:"JetBrains Mono",monospace;font-size:10px;
+  background:var(--cyan-dim);color:var(--cyan);padding:2px 7px;border-radius:999px;
+}
+.panel-body{padding:12px;display:flex;flex-direction:column;gap:9px;flex:1;min-height:250px}
+.empty{
+  margin:auto;text-align:center;color:var(--ink-4);font-size:12.5px;max-width:22ch;line-height:1.5;
+}
+.empty .big{font-size:26px;display:block;margin-bottom:8px;opacity:.5}
+
+.task{
+  background:var(--surface-2);border:1px solid var(--line-solid);border-left:3px solid var(--coral);
+  border-radius:9px;padding:11px 12px;animation:taskIn .44s cubic-bezier(.2,1.2,.3,1);
+}
+@keyframes taskIn{from{opacity:0;transform:translateX(18px) scale(.96)}to{opacity:1;transform:none}}
+.task.resolved{border-left-color:var(--cyan)}
+.task-top{display:flex;align-items:flex-start;gap:8px;margin-bottom:6px}
+.task-top b{font-size:12.5px;font-weight:600;line-height:1.35;flex:1}
+.badge{
+  font-family:"JetBrains Mono",monospace;font-size:8.5px;letter-spacing:.09em;
+  text-transform:uppercase;padding:3px 7px;border-radius:999px;white-space:nowrap;font-weight:700;
+  transition:all .3s;
+}
+.b-received{background:var(--coral-dim);color:var(--coral)}
+.b-progress{background:#F5B54422;color:var(--amber)}
+.b-fixed{background:var(--cyan-dim);color:var(--cyan)}
+.b-verified{background:var(--cyan);color:#06221F}
+.task-meta{font-size:10.5px;color:var(--ink-4);line-height:1.6;font-family:"JetBrains Mono",monospace}
+.task-meta .u{color:var(--ink-3)}
+.thumb{
+  margin-top:8px;height:46px;border-radius:6px;border:1px solid var(--line-solid);
+  background:linear-gradient(115deg,#1A2333,#222D40 45%,#1A2333);
+  display:flex;align-items:center;justify-content:center;
+  font-size:9.5px;color:var(--ink-4);font-family:"JetBrains Mono",monospace;gap:5px;
+  position:relative;overflow:hidden;
+}
+.thumb::after{
+  content:"";position:absolute;inset:0;
+  background:linear-gradient(90deg,transparent,#FFFFFF14,transparent);
+  animation:shimmer 2.2s infinite;
+}
+@keyframes shimmer{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+.verify-row{display:flex;gap:6px;margin-top:9px}
+.verify-row button{
+  font-size:10.5px;font-weight:600;padding:6px 11px;border-radius:7px;flex:1;transition:all .16s;
+}
+.v-yes{background:var(--cyan-dim);color:var(--cyan);border:1px solid #3DD6C455}
+.v-yes:hover{background:var(--cyan);color:#06221F}
+.v-no{background:var(--surface-3);color:var(--ink-3);border:1px solid var(--line-solid)}
+.v-no:hover{color:var(--ink)}
+.done-note{
+  margin-top:8px;font-size:10.5px;color:var(--cyan);display:flex;align-items:center;gap:6px;
+  font-family:"JetBrains Mono",monospace;
+}
+
+/* confetti */
+.confetti{position:fixed;width:7px;height:11px;z-index:300;pointer-events:none;border-radius:1px}
+
+/* ── sections ── */
+section{padding:92px 0}
+.sec-head{text-align:center;max-width:720px;margin:0 auto 52px}
+.sec-head .eyebrow{margin-bottom:14px;display:block}
+.sec-head h2{font-size:clamp(29px,4.1vw,45px);line-height:1.08;letter-spacing:-.028em;font-weight:800;margin-bottom:16px}
+.sec-head p{color:var(--ink-2);font-size:17.5px;max-width:58ch;margin:0 auto}
+
+.reveal{opacity:0;transform:translateY(26px);transition:opacity .7s cubic-bezier(.2,.7,.3,1),transform .7s cubic-bezier(.2,.7,.3,1)}
+.reveal.in{opacity:1;transform:none}
+
+/* problem */
+.prob-grid{display:grid;gap:18px;grid-template-columns:repeat(auto-fit,minmax(265px,1fr))}
+.prob{
+  background:var(--surface);border:1px solid var(--line-solid);border-radius:var(--radius);
+  padding:24px;position:relative;overflow:hidden;
+}
+.prob::before{
+  content:"";position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,var(--coral),transparent);
+}
+.prob h3{font-size:18.5px;margin-bottom:9px;letter-spacing:-.016em}
+.prob p{font-size:15px;color:var(--ink-2)}
+.prob .quote{
+  margin-top:14px;padding:11px 13px;background:var(--void);border-radius:9px;
+  border-left:2px solid var(--coral);font-size:13.5px;color:var(--ink-3);font-style:italic;
+}
+.chaos{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px}
+.chaos span{
+  font-size:10.5px;padding:4px 9px;border-radius:6px;background:var(--surface-2);
+  color:var(--ink-4);border:1px solid var(--line-solid);font-family:"JetBrains Mono",monospace;
+  animation:jitter 5s ease-in-out infinite;
+}
+.chaos span:nth-child(2n){animation-delay:-1.4s}
+.chaos span:nth-child(3n){animation-delay:-2.8s}
+@keyframes jitter{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-3px) rotate(-1.2deg)}}
+
+/* loop */
+.loop{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));position:relative}
+.step{
+  background:var(--surface);border:1px solid var(--line-solid);border-radius:var(--radius);
+  padding:22px 20px;position:relative;transition:transform .3s,border-color .3s;
+}
+.step:hover{transform:translateY(-5px);border-color:var(--ink-4)}
+.step-n{
+  width:34px;height:34px;border-radius:50% 50% 50% 3px;transform:rotate(-45deg);
+  display:grid;place-items:center;margin-bottom:16px;
+  font-family:"JetBrains Mono",monospace;font-size:12px;font-weight:700;
+}
+.step-n span{transform:rotate(45deg)}
+.s1 .step-n{background:var(--coral-dim);color:var(--coral);border:1px solid #FF6B5755}
+.s2 .step-n{background:#F5B54422;color:var(--amber);border:1px solid #F5B54455}
+.s3 .step-n{background:var(--cyan-dim);color:var(--cyan);border:1px solid #3DD6C455}
+.s4 .step-n{background:var(--cyan);color:#06221F}
+.step h3{font-size:17px;margin-bottom:8px;letter-spacing:-.014em}
+.step p{font-size:14.5px;color:var(--ink-2)}
+.step .who{
+  font-family:"JetBrains Mono",monospace;font-size:9.5px;letter-spacing:.12em;
+  text-transform:uppercase;margin-top:12px;display:block;
+}
+.s1 .who,.s4 .who{color:var(--coral)}
+.s2 .who,.s3 .who{color:var(--cyan)}
+
+/* feature grid */
+.feat{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(248px,1fr))}
+.f{
+  background:var(--surface);border:1px solid var(--line-solid);border-radius:var(--radius);padding:22px;
+  transition:border-color .3s,transform .3s;
+}
+.f:hover{border-color:var(--ink-4);transform:translateY(-3px)}
+.f .ic{
+  width:38px;height:38px;border-radius:10px;display:grid;place-items:center;
+  margin-bottom:14px;font-size:18px;background:var(--surface-2);border:1px solid var(--line-solid);
+}
+.f h3{font-size:16.5px;margin-bottom:7px;letter-spacing:-.012em}
+.f p{font-size:14.5px;color:var(--ink-2)}
+
+/* setup */
+.setup{display:grid;gap:20px;grid-template-columns:minmax(0,1fr)}
+@media(min-width:900px){.setup{grid-template-columns:repeat(3,1fr)}}
+.su{position:relative;padding-left:48px}
+.su-n{
+  position:absolute;left:0;top:-2px;width:34px;height:34px;border-radius:50%;
+  background:var(--surface-2);border:1px solid var(--line-solid);
+  display:grid;place-items:center;font-family:"JetBrains Mono",monospace;
+  font-size:13px;font-weight:700;color:var(--cyan);
+}
+.su h3{font-size:17px;margin-bottom:8px}
+.su p{font-size:14.5px;color:var(--ink-2)}
+.code{
+  background:var(--void);border:1px solid var(--line-solid);border-radius:10px;
+  padding:14px;margin-top:26px;overflow-x:auto;position:relative;
+}
+.code pre{
+  font-family:"JetBrains Mono",monospace;font-size:11.5px;line-height:1.75;
+  color:var(--ink-2);white-space:pre;
+}
+.code .tag{color:var(--violet)}
+.code .attr{color:var(--cyan)}
+.code .val{color:var(--amber)}
+.copy{
+  position:absolute;top:10px;right:10px;font-family:"JetBrains Mono",monospace;
+  font-size:10px;padding:5px 10px;border-radius:6px;background:var(--surface-2);
+  color:var(--ink-3);border:1px solid var(--line-solid);transition:all .2s;
+}
+.copy:hover{color:var(--ink);border-color:var(--ink-4)}
+.copy.done{color:var(--cyan);border-color:#3DD6C455}
+
+/* audience */
+.aud{display:grid;gap:18px;grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+.aud-card{
+  background:var(--surface);border:1px solid var(--line-solid);border-radius:var(--radius);padding:26px;
+}
+.aud-card.client{border-top:3px solid var(--coral)}
+.aud-card.maker{border-top:3px solid var(--cyan)}
+.aud-card h3{font-size:19.5px;margin-bottom:6px;letter-spacing:-.018em}
+.aud-card .role{
+  font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.14em;
+  text-transform:uppercase;margin-bottom:18px;display:block;
+}
+.aud-card.client .role{color:var(--coral)}
+.aud-card.maker .role{color:var(--cyan)}
+.aud-card ul{list-style:none;display:flex;flex-direction:column;gap:12px}
+.aud-card li{display:flex;gap:11px;font-size:15px;color:var(--ink-2);line-height:1.5}
+.aud-card li .m{flex:none;margin-top:1px;font-weight:700}
+.aud-card.client li .m{color:var(--coral)}
+.aud-card.maker li .m{color:var(--cyan)}
+
+/* stats */
+.stats{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));margin-top:44px}
+.stat{
+  background:var(--surface);border:1px solid var(--line-solid);border-radius:var(--radius);
+  padding:22px;text-align:center;
+}
+.stat b{
+  display:block;font-family:"Bricolage Grotesque",sans-serif;font-size:34px;font-weight:800;
+  letter-spacing:-.03em;margin-bottom:5px;color:var(--cyan);font-variant-numeric:tabular-nums;
+}
+.stat span{font-size:13px;color:var(--ink-3)}
+
+/* cta */
+.cta-box{
+  background:linear-gradient(145deg,var(--surface-2),var(--surface));
+  border:1px solid var(--line-solid);border-radius:22px;padding:clamp(34px,6vw,62px);
+  text-align:center;position:relative;overflow:hidden;
+}
+.cta-box::before{
+  content:"";position:absolute;width:420px;height:420px;border-radius:50%;
+  background:var(--coral);filter:blur(120px);opacity:.14;top:-180px;left:50%;transform:translateX(-50%);
+}
+.cta-box > *{position:relative}
+.cta-box h2{font-size:clamp(28px,4.4vw,46px);letter-spacing:-.03em;font-weight:800;margin-bottom:16px;line-height:1.08}
+.cta-box p{color:var(--ink-2);max-width:48ch;margin:0 auto 28px;font-size:17px}
+
+footer{border-top:1px solid var(--line-solid);padding:40px 0;margin-top:30px}
+.foot{display:flex;flex-wrap:wrap;gap:20px;align-items:center;justify-content:space-between}
+.foot p{font-size:13px;color:var(--ink-4)}
+.foot-links{display:flex;gap:20px;font-size:13px;color:var(--ink-3);flex-wrap:wrap}
+.foot-links a:hover{color:var(--ink)}
+.msme{
+  display:inline-flex;align-items:center;gap:7px;font-size:11px;color:var(--ink-4);
+  font-family:"JetBrains Mono",monospace;
+}
+
+@media (prefers-reduced-motion:reduce){
+  *{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important}
+  html{scroll-behavior:auto}
+  .reveal{opacity:1;transform:none}
+}
+</style>
+
+</head>
+<body>
+<div class="aurora" aria-hidden="true"><i></i><i></i><i></i></div>
+<div class="grid-bg" aria-hidden="true"></div>
+
+<nav>
+  <div class="wrap nav-in">
+    <a href="#top" class="brand">
+      <span class="brand-pin" aria-hidden="true"></span>
+      <span>SyncUp<small>AUROCODE</small></span>
+    </a>
+    <div class="nav-links">
+      <a href="#problem">Problem</a>
+      <a href="#how">How it works</a>
+      <a href="#demos">See it work</a>
+      <a href="#setup">Setup</a>
+      <button class="sound-btn" id="soundToggle" aria-pressed="false" title="Toggle sound effects">
+        <span class="wave" aria-hidden="true"><b></b><b></b><b></b></span>
+        <span id="soundLabel">SOUND OFF</span>
+      </button>
+      <a href="#cta" class="cta-sm">Get started</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero" id="top">
+  <div class="wrap hero-grid">
+    <div>
+      <div class="tagline"><span class="dot"></span> The feedback loop, closed in front of your client</div>
+      <h1>Your client <span class="pt">points</span> at it. You <span class="fx">fix</span> it. They watch it happen.</h1>
+      <p class="lede">
+        Stop decoding “the button looks weird on the pricing page.” Clients click the exact thing on their own
+        website, say what's wrong, and it lands in your task list with a screenshot attached —
+        <strong>then they watch it get fixed, without a single status email.</strong>
+      </p>
+      <div class="btn-row">
+        <a href="#demos" class="btn btn-primary">Watch it work <span aria-hidden="true">→</span></a>
+        <a href="#how" class="btn btn-ghost">How it works</a>
+      </div>
+      <div class="trust">
+        <span><b class="tick">✓</b> No login for clients</span>
+        <span><b class="tick">✓</b> One line to install</span>
+        <span><b class="tick">✓</b> Screenshots auto-masked</span>
+      </div>
+    </div>
+
+    <!-- interactive demo -->
+    <div class="stage">
+      <div class="chrome">
+        <div class="chrome-bar">
+          <span class="tl" aria-hidden="true"><i></i><i></i><i></i></span>
+          <span class="url">https://diamondaccounts.in/pricing</span>
+          <span class="chrome-label">Client's site</span>
+        </div>
+        <div class="site" id="site">
+          <div class="site-nav">
+            <span class="site-logo hot">Diamond Accounts</span>
+            <em class="hot">Filing</em><em class="hot">Pricing</em><em class="hot">Support</em>
+          </div>
+          <h3 class="hot">File your taxes without the paperwork</h3>
+          <p class="hot">Individual and business filing, handled end to end by people who do this every day.</p>
+          <span class="site-cta hot">Start my filing</span>
+          <div class="price-row">
+            <div class="price hot"><b>₹999</b><span>Individual</span></div>
+            <div class="price hot"><b>₹2,499</b><span>Business</span></div>
+            <div class="price hot"><b>₹4,999</b><span>Enterprise</span></div>
+          </div>
+          <div class="fab">
+            <button class="f-good" id="btnGood">👍 Looks good</button>
+            <button class="f-feedback" id="btnFeedback">💬 Feedback</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <span class="brand-pin" style="width:16px;height:16px" aria-hidden="true"></span>
+          <b>Your SyncUp board</b>
+          <span class="count" id="taskCount">0 open</span>
+        </div>
+        <div class="panel-body" id="board">
+          <div class="empty" id="boardEmpty">
+            <span class="big" aria-hidden="true">📌</span>
+            Click <b>Feedback</b> on the site, then click anything on the page.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <!-- ── PROBLEM ── -->
+  <section id="problem">
+    <div class="wrap">
+      <div class="sec-head reveal">
+        <span class="eyebrow">The problem</span>
+        <h2>Feedback arrives broken. Then you pay to reassemble it.</h2>
+        <p>Every project that ships visual work for a non-technical buyer loses hours to the same three things.</p>
+      </div>
+      <div class="prob-grid">
+        <div class="prob reveal">
+          <h3>Translation loss</h3>
+          <p>A client describes a problem in words. You spend real time working out which page, which element, which
+            screen size, which state. Every screenshot is a small decoding job.</p>
+          <div class="quote">“The thing at the top looks squished on my phone”</div>
+        </div>
+        <div class="prob reveal">
+          <h3>Scattered across five apps</h3>
+          <p>Feedback forks the moment two people reply. Nothing is anchored to the live page, so version 3 arrives
+            through a different channel than version 2 — and gets missed.</p>
+          <div class="chaos">
+            <span>WhatsApp</span><span>Email</span><span>Voice note</span><span>Screenshot.png</span>
+            <span>Phone call</span><span>Slack</span><span>“as discussed”</span>
+          </div>
+        </div>
+        <div class="prob reveal">
+          <h3>Status anxiety</h3>
+          <p>The client can't see progress, so they ask. Asking costs you a context switch; not answering costs them
+            confidence. Both of you dislike the Friday update email.</p>
+          <div class="quote">“Just checking in — any update on this?”</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── HOW IT WORKS ── -->
+  <section id="how">
+    <div class="wrap">
+      <div class="sec-head reveal">
+        <span class="eyebrow">How it works</span>
+        <h2>One loop, and it closes where the client can see it</h2>
+        <p>Feedback tools capture well but go quiet afterwards. Client portals have nothing happening inside them.
+          SyncUp is the loop that joins the two.</p>
+      </div>
+      <div class="loop">
+        <div class="step s1 reveal">
+          <div class="step-n"><span>01</span></div>
+          <h3>They point</h3>
+          <p>Your client clicks the element that's wrong on their own live site and types one sentence. A screenshot,
+            the page URL and the exact click position attach themselves.</p>
+          <span class="who">Client · 10 seconds</span>
+        </div>
+        <div class="step s2 reveal">
+          <div class="step-n"><span>02</span></div>
+          <h3>It becomes work</h3>
+          <p>It arrives in your board as a real task, tagged as feedback — not an email you have to re-type. You get
+            notified; they're told when to expect an update.</p>
+          <span class="who">SyncUp · instant</span>
+        </div>
+        <div class="step s3 reveal">
+          <div class="step-n"><span>03</span></div>
+          <h3>You fix it</h3>
+          <p>Work it like any other task. When you mark it done, the client is told it's fixed and live — with a link
+            straight back to the thing they pointed at.</p>
+          <span class="who">You · in your own time</span>
+        </div>
+        <div class="step s4 reveal">
+          <div class="step-n"><span>04</span></div>
+          <h3>They confirm</h3>
+          <p>The client checks and taps <em>Looks fixed</em> — or reopens it if it isn't right. The loop closes in
+            front of them, which is the part that builds trust.</p>
+          <span class="who">Client · one tap</span>
+        </div>
+      </div>
+      <div class="stats">
+        <div class="stat reveal"><b data-count="0">0</b><span>Passwords your client needs</span></div>
+        <div class="stat reveal"><b data-count="1">0</b><span>Lines of code to install</span></div>
+        <div class="stat reveal"><b data-count="10">0</b><span>Seconds to file feedback</span></div>
+        <div class="stat reveal"><b data-count="100">0</b><span>% of requests logged &amp; timestamped</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── DEMOS ── -->
+  <section id="demos">
+    <div class="wrap">
+      <div class="sec-head reveal">
+        <span class="eyebrow">See it work</span>
+        <h2>Three moments, start to finish</h2>
+        <p>Press play on any of them. Turn sound on in the top bar for the full effect.</p>
+      </div>
+      <div class="feat" id="demoRow">
+        <div class="f reveal" style="padding:0;overflow:hidden">
+          <div class="chrome" style="border:none;border-radius:0;box-shadow:none">
+            <div class="chrome-bar">
+              <span class="tl" aria-hidden="true"><i></i><i></i><i></i></span>
+              <span class="chrome-label">01 · Client files it</span>
+            </div>
+            <div class="demo-canvas" id="d1" data-demo="1"></div>
+          </div>
+          <div style="padding:18px 20px 20px">
+            <h3>They click. They type. Done.</h3>
+            <p>No account, no app, no “can you send a screenshot”. The widget captures the page, masks anything
+              they've typed into a form, and sends it.</p>
+            <button class="btn btn-ghost" style="margin-top:14px;font-size:13px;padding:9px 16px" data-play="1">▶ Replay</button>
+          </div>
+        </div>
+
+        <div class="f reveal" style="padding:0;overflow:hidden">
+          <div class="chrome" style="border:none;border-radius:0;box-shadow:none">
+            <div class="chrome-bar">
+              <span class="tl" aria-hidden="true"><i></i><i></i><i></i></span>
+              <span class="chrome-label">02 · You get real work</span>
+            </div>
+            <div class="demo-canvas" id="d2" data-demo="2"></div>
+          </div>
+          <div style="padding:18px 20px 20px">
+            <h3>It lands as a task, not an email</h3>
+            <p>Screenshot, page, click position and browser all attached. Feedback is counted separately from
+              planned scope, so bug reports never drag your progress bar down.</p>
+            <button class="btn btn-ghost" style="margin-top:14px;font-size:13px;padding:9px 16px" data-play="2">▶ Replay</button>
+          </div>
+        </div>
+
+        <div class="f reveal" style="padding:0;overflow:hidden">
+          <div class="chrome" style="border:none;border-radius:0;box-shadow:none">
+            <div class="chrome-bar">
+              <span class="tl" aria-hidden="true"><i></i><i></i><i></i></span>
+              <span class="chrome-label">03 · The loop closes</span>
+            </div>
+            <div class="demo-canvas" id="d3" data-demo="3"></div>
+          </div>
+          <div style="padding:18px 20px 20px">
+            <h3>“Fixed and live — have a look”</h3>
+            <p>They get a message, check it, and confirm. Or reopen it. Either way you both know exactly where it
+              stands, and there's a record of it.</p>
+            <button class="btn btn-ghost" style="margin-top:14px;font-size:13px;padding:9px 16px" data-play="3">▶ Replay</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── AUDIENCE ── -->
+  <section>
+    <div class="wrap">
+      <div class="sec-head reveal">
+        <span class="eyebrow">Who it helps</span>
+        <h2>Both sides get the thing they actually want</h2>
+        <p>The client wants to be heard and kept informed. You want fewer interruptions and a record of what was
+          asked for.</p>
+      </div>
+      <div class="aud">
+        <div class="aud-card client reveal">
+          <h3>Your client</h3>
+          <span class="role">Non-technical · busy · lives in WhatsApp</span>
+          <ul>
+            <li><span class="m">→</span> <span><b>Never creates an account.</b> One private link, sent over WhatsApp or email, signs them straight in.</span></li>
+            <li><span class="m">→</span> <span><b>Points instead of describing.</b> No more hunting for the words for “that bit at the top”.</span></li>
+            <li><span class="m">→</span> <span><b>Knows where things stand.</b> Received → In progress → Fixed, on the thing they reported.</span></li>
+            <li><span class="m">→</span> <span><b>Gets told when to expect news</b> the moment they submit, so they don't have to chase.</span></li>
+            <li><span class="m">→</span> <span><b>Can say “looks good”</b> on a page that's fine — not every message has to be a complaint.</span></li>
+          </ul>
+        </div>
+        <div class="aud-card maker reveal">
+          <h3>You, the studio</h3>
+          <span class="role">Solo dev or small team · 4–6 live projects</span>
+          <ul>
+            <li><span class="m">→</span> <span><b>Feedback arrives usable.</b> Screenshot, URL, click position and browser, every time.</span></li>
+            <li><span class="m">→</span> <span><b>Fewer “any update?” messages,</b> because the answer is already in front of them.</span></li>
+            <li><span class="m">→</span> <span><b>Every request timestamped.</b> When scope creeps, you have the receipts rather than a memory.</span></li>
+            <li><span class="m">→</span> <span><b>Progress stays honest.</b> Client bug reports don't make a healthy project look like it's slipping.</span></li>
+            <li><span class="m">→</span> <span><b>You look like a company,</b> not a person with an inbox.</span></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── FEATURES ── -->
+  <section>
+    <div class="wrap">
+      <div class="sec-head reveal">
+        <span class="eyebrow">What's in the box</span>
+        <h2>A client portal that has something happening inside it</h2>
+        <p>The loop is the point. Everything else exists to support it.</p>
+      </div>
+      <div class="feat">
+        <div class="f reveal"><div class="ic">📌</div><h3>Point-and-click feedback</h3><p>One script on the client's site. They click the element, type a line, and it's filed with a screenshot.</p></div>
+        <div class="f reveal"><div class="ic">🔗</div><h3>No-login access</h3><p>Magic links instead of passwords, shareable over WhatsApp in one tap. Revocable whenever you want.</p></div>
+        <div class="f reveal"><div class="ic">🔁</div><h3>Closed-loop status</h3><p>Clients see their own item move to Fixed, then confirm it or reopen it. No more silent resolutions.</p></div>
+        <div class="f reveal"><div class="ic">🛡️</div><h3>Screenshots that behave</h3><p>Form values are blanked before capture, images are served from your own domain, and keys are locked to your client's site.</p></div>
+        <div class="f reveal"><div class="ic">📋</div><h3>Proposals &amp; tasks</h3><p>Scope, deliverables, timeline and budget in one place — with tasks, comments, files and a full activity timeline.</p></div>
+        <div class="f reveal"><div class="ic">📈</div><h3>Honest progress</h3><p>Planned work drives the progress bar. Incoming feedback is tracked beside it, never folded into it.</p></div>
+        <div class="f reveal"><div class="ic">✉️</div><h3>Reaches people</h3><p>Email notifications for status changes, new feedback and approvals — so things get seen outside the app.</p></div>
+        <div class="f reveal"><div class="ic">📄</div><h3>Shareable reports</h3><p>A read-only progress page your client can forward to their own stakeholders. Expires and revokes on your terms.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── SETUP ── -->
+  <section id="setup">
+    <div class="wrap">
+      <div class="sec-head reveal">
+        <span class="eyebrow">Getting started</span>
+        <h2>Three steps, about five minutes</h2>
+        <p>No SDK, no build step, no npm install on the client's site.</p>
+      </div>
+      <div class="setup">
+        <div class="su reveal"><div class="su-n">1</div><h3>Create the project</h3>
+          <p>Add the proposal — scope, deliverables, timeline — and connect your client. They get a private link; they never pick a password.</p></div>
+        <div class="su reveal"><div class="su-n">2</div><h3>Paste one line</h3>
+          <p>Drop the snippet before <span class="mono">&lt;/body&gt;</span> on the site you're building. Then lock the key to that domain so nobody else can use it.</p></div>
+        <div class="su reveal"><div class="su-n">3</div><h3>Send the link</h3>
+          <p>Share their access link on WhatsApp. From then on they click, you fix, they confirm — and the record writes itself.</p></div>
+      </div>
+      <div class="code reveal">
+        <button class="copy" id="copyBtn">COPY</button>
+        <pre id="snippet"><span class="tag">&lt;script</span> <span class="attr">src</span>=<span class="val">"https://syncup.aurocode.in/widget.js"</span>
+        <span class="attr">data-project</span>=<span class="val">"your-project-key"</span>
+        <span class="attr">data-api</span>=<span class="val">"https://syncup.aurocode.in/api"</span> <span class="attr">async</span><span class="tag">&gt;&lt;/script&gt;</span></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── CTA ── -->
+  <section id="cta">
+    <div class="wrap">
+      <div class="cta-box reveal">
+        <h2>Stop retyping your clients' feedback</h2>
+        <p>Put the loop on one project and see whether your client actually uses it. That's the only test that matters.</p>
+        <div class="btn-row" style="justify-content:center">
+          <a href="/login" class="btn btn-primary" data-app-cta>Open SyncUp <span aria-hidden="true">→</span></a>
+          <a href="#top" class="btn btn-ghost">Try the demo again</a>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap foot">
+    <div>
+      <div class="brand" style="margin-bottom:8px">
+        <span class="brand-pin" aria-hidden="true"></span>
+        <span>SyncUp<small>AUROCODE</small></span>
+      </div>
+      <p>Code That Illuminates</p>
+      <p class="msme" style="margin-top:8px"><span style="color:var(--cyan)">✓</span> Udyam Registered MSME · UDYAM-UP-28-0196515</p>
+    </div>
+    <div class="foot-links">
+      <a href="#problem">Problem</a>
+      <a href="#how">How it works</a>
+      <a href="#demos">Demos</a>
+      <a href="#setup">Setup</a>
+      <a href="/login">Sign in</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function(){
+  "use strict";
+  const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  /* ─────────── sound: synthesised, no asset files ─────────── */
+  const Sound = (function(){
+    let ctx = null, on = false;
+    try { on = localStorage.getItem("su_sound") === "1"; } catch(e){ on = false; }
+
+    function ensure(){
+      if (!ctx) {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return null;
+        try { ctx = new AC(); } catch(e){ return null; }
+      }
+      if (ctx.state === "suspended") { try { ctx.resume(); } catch(e){} }
+      return ctx;
+    }
+    function tone(freq, dur, type, vol, slideTo){
+      if (!on) return;
+      const c = ensure(); if (!c) return;
+      try {
+        const o = c.createOscillator(), g = c.createGain();
+        o.type = type || "sine";
+        o.frequency.setValueAtTime(freq, c.currentTime);
+        if (slideTo) o.frequency.exponentialRampToValueAtTime(slideTo, c.currentTime + dur);
+        g.gain.setValueAtTime(0, c.currentTime);
+        g.gain.linearRampToValueAtTime(vol || 0.08, c.currentTime + 0.012);
+        g.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + dur);
+        o.connect(g); g.connect(c.destination);
+        o.start(); o.stop(c.currentTime + dur + 0.02);
+      } catch(e){}
+    }
+    function noise(dur, vol){
+      if (!on) return;
+      const c = ensure(); if (!c) return;
+      try {
+        const len = Math.floor(c.sampleRate * dur);
+        const buf = c.createBuffer(1, len, c.sampleRate);
+        const d = buf.getChannelData(0);
+        for (let i=0;i<len;i++) d[i] = (Math.random()*2-1) * Math.pow(1 - i/len, 2.5);
+        const s = c.createBufferSource(); s.buffer = buf;
+        const f = c.createBiquadFilter(); f.type = "highpass"; f.frequency.value = 1400;
+        const g = c.createGain(); g.gain.value = vol || 0.05;
+        s.connect(f); f.connect(g); g.connect(c.destination); s.start();
+      } catch(e){}
+    }
+    return {
+      isOn: () => on,
+      set(v){
+        on = v;
+        try { localStorage.setItem("su_sound", v ? "1" : "0"); } catch(e){}
+        if (v) { ensure(); tone(660, .09, "sine", .06); }
+      },
+      click(){ tone(420, .05, "triangle", .05); },
+      pin(){ tone(880, .12, "sine", .09, 300); noise(.06, .03); },
+      type(){ tone(1500 + Math.random()*500, .022, "square", .012); },
+      send(){ tone(380, .26, "sine", .07, 1180); },
+      land(){ tone(300, .1, "triangle", .07); setTimeout(()=>tone(450,.1,"triangle",.055), 70); },
+      stage(){ tone(620, .09, "sine", .05); },
+      success(){ tone(660,.13,"sine",.08); setTimeout(()=>tone(880,.13,"sine",.08),105); setTimeout(()=>tone(1320,.22,"sine",.07),210); },
+      pop(){ tone(1050, .06, "sine", .05); }
+    };
+  })();
+
+  const sBtn = document.getElementById("soundToggle");
+  const sLabel = document.getElementById("soundLabel");
+  function paintSound(){
+    const on = Sound.isOn();
+    sBtn.classList.toggle("on", on);
+    sBtn.setAttribute("aria-pressed", on ? "true" : "false");
+    sLabel.textContent = on ? "SOUND ON" : "SOUND OFF";
+  }
+  paintSound();
+  sBtn.addEventListener("click", () => { Sound.set(!Sound.isOn()); paintSound(); });
+
+  /* ─────────── scroll reveals ─────────── */
+  if ("IntersectionObserver" in window) {
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach((e, i) => {
+        if (e.isIntersecting) {
+          setTimeout(() => e.target.classList.add("in"), reduced ? 0 : (i % 4) * 85);
+          io.unobserve(e.target);
+        }
+      });
+    }, { threshold: .12, rootMargin: "0px 0px -8% 0px" });
+    document.querySelectorAll(".reveal").forEach(el => io.observe(el));
+  } else {
+    document.querySelectorAll(".reveal").forEach(el => el.classList.add("in"));
+  }
+
+  /* ─────────── counters ─────────── */
+  const counters = document.querySelectorAll("[data-count]");
+  if ("IntersectionObserver" in window) {
+    const cio = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (!e.isIntersecting) return;
+        const el = e.target, target = parseInt(el.dataset.count, 10);
+        cio.unobserve(el);
+        if (reduced || target === 0) { el.textContent = target; return; }
+        let cur = 0;
+        const step = Math.max(1, Math.round(target / 28));
+        const t = setInterval(() => {
+          cur += step;
+          if (cur >= target) { cur = target; clearInterval(t); }
+          el.textContent = cur;
+        }, 26);
+      });
+    }, { threshold: .5 });
+    counters.forEach(c => cio.observe(c));
+  }
+
+  /* ─────────── interactive hero demo ─────────── */
+  const site = document.getElementById("site");
+  const btnFeedback = document.getElementById("btnFeedback");
+  const btnGood = document.getElementById("btnGood");
+  const board = document.getElementById("board");
+  const boardEmpty = document.getElementById("boardEmpty");
+  const taskCount = document.getElementById("taskCount");
+
+  let picking = false, hintEl = null, openCount = 0, seq = 0;
+
+  function setCount(){
+    taskCount.textContent = openCount + (openCount === 1 ? " open" : " open");
+  }
+  function stopPicking(){
+    picking = false;
+    site.classList.remove("picking");
+    btnFeedback.classList.remove("active");
+    btnFeedback.textContent = "💬 Feedback";
+    if (hintEl) { hintEl.remove(); hintEl = null; }
+  }
+  function startPicking(){
+    picking = true;
+    site.classList.add("picking");
+    btnFeedback.classList.add("active");
+    btnFeedback.textContent = "✕ Cancel";
+    hintEl = document.createElement("div");
+    hintEl.className = "hint";
+    hintEl.textContent = "Click anything on the page →";
+    site.appendChild(hintEl);
+    Sound.click();
+  }
+
+  btnFeedback.addEventListener("click", (e) => {
+    e.stopPropagation();
+    picking ? stopPicking() : startPicking();
+  });
+
+  btnGood.addEventListener("click", () => {
+    Sound.success();
+    btnGood.textContent = "✓ Noted — thanks!";
+    btnGood.style.background = "var(--cyan)";
+    btnGood.style.color = "#06221F";
+    burst(btnGood);
+    setTimeout(() => {
+      btnGood.textContent = "👍 Looks good";
+      btnGood.style.background = "";
+      btnGood.style.color = "";
+    }, 2400);
+  });
+
+  site.addEventListener("click", (ev) => {
+    if (!picking) return;
+    if (ev.target.closest(".fab")) return;
+    ev.preventDefault();
+    const r = site.getBoundingClientRect();
+    const x = ev.clientX - r.left, y = ev.clientY - r.top;
+    stopPicking();
+    dropPin(x, y);
+    openForm(x, y, ev.target.closest(".hot"));
+  });
+
+  function dropPin(x, y){
+    const rip = document.createElement("div");
+    rip.className = "ripple"; rip.style.left = x+"px"; rip.style.top = y+"px";
+    site.appendChild(rip); setTimeout(()=>rip.remove(), 720);
+    const p = document.createElement("div");
+    p.className = "pin-mark"; p.style.left = x+"px"; p.style.top = y+"px";
+    p.dataset.pin = "1";
+    site.appendChild(p);
+    Sound.pin();
+  }
+
+  const SUGGESTIONS = [
+    "This button is cut off on my phone",
+    "Wrong price — should be ₹1,299",
+    "This text is too small to read",
+    "Link goes to the wrong page"
+  ];
+
+  function openForm(x, y, target){
+    const label = target ? (target.textContent || "").trim().slice(0, 28) : "this element";
+    const ov = document.createElement("div");
+    ov.className = "fb-overlay";
+    ov.innerHTML =
+      '<div class="fb-card">' +
+        '<h4>What\'s wrong here?</h4>' +
+        '<p class="sub">On “' + escapeHtml(label) + '” — a screenshot attaches automatically.</p>' +
+        '<textarea class="fb-input" placeholder="Describe what you see…"></textarea>' +
+        '<div class="chips"></div>' +
+        '<div class="shot-note"><span style="color:var(--cyan)">🛡</span> Anything you typed into the page is blanked out first</div>' +
+        '<div class="fb-actions">' +
+          '<button class="b-cancel">Cancel</button>' +
+          '<button class="b-send" disabled>Send</button>' +
+        '</div>' +
+      '</div>';
+    site.appendChild(ov);
+
+    const ta = ov.querySelector("textarea");
+    const send = ov.querySelector(".b-send");
+    const chipWrap = ov.querySelector(".chips");
+
+    SUGGESTIONS.slice(0, 3).forEach(txt => {
+      const c = document.createElement("button");
+      c.className = "chip"; c.textContent = txt;
+      c.addEventListener("click", () => { typeOut(ta, txt, send); });
+      chipWrap.appendChild(c);
+    });
+
+    ta.addEventListener("input", () => {
+      send.disabled = !ta.value.trim();
+      Sound.type();
+    });
+    setTimeout(()=>{ try{ ta.focus(); }catch(e){} }, 60);
+
+    ov.querySelector(".b-cancel").addEventListener("click", () => {
+      ov.remove(); clearPins(); Sound.click();
+    });
+    send.addEventListener("click", () => {
+      const msg = ta.value.trim(); if (!msg) return;
+      send.disabled = true; send.textContent = "Sending…";
+      Sound.send();
+      const from = send.getBoundingClientRect();
+      ov.remove(); clearPins();
+      flyToBoard(from, msg);
+    });
+  }
+
+  function typeOut(ta, text, send){
+    if (reduced) { ta.value = text; send.disabled = false; return; }
+    ta.value = ""; let i = 0;
+    const t = setInterval(() => {
+      ta.value = text.slice(0, ++i);
+      if (i % 2 === 0) Sound.type();
+      send.disabled = !ta.value.trim();
+      if (i >= text.length) clearInterval(t);
+    }, 26);
+  }
+
+  function clearPins(){ site.querySelectorAll("[data-pin]").forEach(p => p.remove()); }
+
+  function flyToBoard(fromRect, msg){
+    const target = board.getBoundingClientRect();
+    const parcel = document.createElement("div");
+    parcel.className = "parcel";
+    parcel.textContent = "📌 feedback";
+    parcel.style.left = fromRect.left + "px";
+    parcel.style.top = fromRect.top + "px";
+    document.body.appendChild(parcel);
+
+    const dx = (target.left + target.width/2 - 50) - fromRect.left;
+    const dy = (target.top + 30) - fromRect.top;
+
+    if (reduced) { parcel.remove(); addTask(msg); return; }
+    parcel.animate(
+      [
+        { transform: "translate(0,0) scale(1)", opacity: 1 },
+        { transform: "translate(" + dx*0.5 + "px," + (dy*0.5 - 48) + "px) scale(1.14)", opacity: 1, offset: .55 },
+        { transform: "translate(" + dx + "px," + dy + "px) scale(.5)", opacity: 0 }
+      ],
+      { duration: 760, easing: "cubic-bezier(.4,.05,.3,1)" }
+    ).onfinish = () => { parcel.remove(); addTask(msg); };
+  }
+
+  function addTask(msg){
+    Sound.land();
+    if (boardEmpty) boardEmpty.style.display = "none";
+    openCount++; setCount();
+    const id = ++seq;
+    const el = document.createElement("div");
+    el.className = "task";
+    el.innerHTML =
+      '<div class="task-top">' +
+        '<b>' + escapeHtml(msg) + '</b>' +
+        '<span class="badge b-received">Received</span>' +
+      '</div>' +
+      '<div class="task-meta">' +
+        '<span class="u">diamondaccounts.in/pricing</span><br>' +
+        'pin ' + (20+Math.floor(Math.random()*60)) + '%,' + (20+Math.floor(Math.random()*50)) + '% · Chrome · mobile' +
+      '</div>' +
+      '<div class="thumb">📷 screenshot attached · inputs masked</div>' +
+      '<div class="done-note" data-ack>⏱ You said you\'d update them by Thursday</div>';
+    board.appendChild(el);
+    board.scrollTop = board.scrollHeight;
+
+    const badge = el.querySelector(".badge");
+    const t1 = setTimeout(() => {
+      badge.className = "badge b-progress"; badge.textContent = "In progress"; Sound.stage();
+    }, 1700);
+    const t2 = setTimeout(() => {
+      badge.className = "badge b-fixed"; badge.textContent = "Fixed"; Sound.stage();
+      el.classList.add("resolved");
+      const ack = el.querySelector("[data-ack]");
+      if (ack) ack.remove();
+      const row = document.createElement("div");
+      row.className = "verify-row";
+      row.innerHTML = '<button class="v-yes">Looks fixed</button><button class="v-no">Still not right</button>';
+      el.appendChild(row);
+      row.querySelector(".v-yes").addEventListener("click", () => {
+        badge.className = "badge b-verified"; badge.textContent = "✓ Verified";
+        row.remove();
+        const d = document.createElement("div");
+        d.className = "done-note";
+        d.innerHTML = "✓ Client confirmed · closed in 4h 12m";
+        el.appendChild(d);
+        openCount = Math.max(0, openCount - 1); setCount();
+        Sound.success(); burst(el);
+      });
+      row.querySelector(".v-no").addEventListener("click", () => {
+        badge.className = "badge b-progress"; badge.textContent = "Reopened";
+        el.classList.remove("resolved");
+        row.remove();
+        const d = document.createElement("div");
+        d.className = "task-meta"; d.style.marginTop = "8px";
+        d.style.color = "var(--amber)";
+        d.textContent = "↩ reopened · back on your board";
+        el.appendChild(d);
+        Sound.pop();
+      });
+    }, 3600);
+    el._timers = [t1, t2];
+  }
+
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, m => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[m]));
+  }
+
+  function burst(anchor){
+    if (reduced) return;
+    const r = anchor.getBoundingClientRect();
+    const colors = ["#FF6B57", "#3DD6C4", "#F5B544", "#8B7BF7"];
+    for (let i = 0; i < 22; i++) {
+      const c = document.createElement("div");
+      c.className = "confetti";
+      c.style.background = colors[i % colors.length];
+      c.style.left = (r.left + r.width/2) + "px";
+      c.style.top = (r.top + r.height/2) + "px";
+      document.body.appendChild(c);
+      const ang = Math.random() * Math.PI * 2;
+      const dist = 60 + Math.random() * 120;
+      c.animate(
+        [
+          { transform: "translate(0,0) rotate(0deg)", opacity: 1 },
+          { transform: "translate(" + Math.cos(ang)*dist + "px," + (Math.sin(ang)*dist + 90) + "px) rotate(" + (Math.random()*720-360) + "deg)", opacity: 0 }
+        ],
+        { duration: 900 + Math.random()*500, easing: "cubic-bezier(.2,.6,.4,1)" }
+      ).onfinish = () => c.remove();
+    }
+  }
+
+  /* ─────────── scripted mini demos ─────────── */
+  const SCENES = {
+    1: [
+      { html: '<div class="d-row"><span class="d-cursor">➤</span><span class="d-txt">Client opens the page you built</span></div>', s: null },
+      { html: '<div class="d-row"><span class="d-tag coral">click</span><span class="d-txt">Taps the Feedback button</span></div>', s: "click" },
+      { html: '<div class="d-row"><span class="d-pin"></span><span class="d-txt">Points at the broken element</span></div>', s: "pin" },
+      { html: '<div class="d-row"><span class="d-tag coral">type</span><span class="d-txt">“This button is cut off on my phone”</span></div>', s: "type" },
+      { html: '<div class="d-row"><span class="d-tag cyan">sent</span><span class="d-txt">Screenshot captured · inputs masked</span></div>', s: "send" }
+    ],
+    2: [
+      { html: '<div class="d-row"><span class="d-tag cyan">new</span><span class="d-txt">Task created on your board</span></div>', s: "land" },
+      { html: '<div class="d-row"><span class="d-tag">meta</span><span class="d-txt">URL · pin position · browser attached</span></div>', s: null },
+      { html: '<div class="d-row"><span class="d-tag">shot</span><span class="d-txt">Screenshot thumbnail, form values blanked</span></div>', s: "pop" },
+      { html: '<div class="d-row"><span class="d-tag cyan">alert</span><span class="d-txt">You get an email — they get a due date</span></div>', s: "stage" },
+      { html: '<div class="d-row"><span class="d-tag">scope</span><span class="d-txt">Counted as feedback, not planned scope</span></div>', s: null }
+    ],
+    3: [
+      { html: '<div class="d-row"><span class="d-tag">work</span><span class="d-txt">You mark it Completed</span></div>', s: "click" },
+      { html: '<div class="d-row"><span class="d-tag cyan">sent</span><span class="d-txt">“Fixed and live — have a look”</span></div>', s: "send" },
+      { html: '<div class="d-row"><span class="d-tag coral">check</span><span class="d-txt">Client opens the link and checks</span></div>', s: "stage" },
+      { html: '<div class="d-row"><span class="d-tag cyan">✓</span><span class="d-txt">Taps “Looks fixed”</span></div>', s: "success" },
+      { html: '<div class="d-row"><span class="d-tag cyan">log</span><span class="d-txt">Closed, timestamped, on the record</span></div>', s: null }
+    ]
+  };
+
+  const demoStyle = document.createElement("style");
+  demoStyle.textContent =
+    ".demo-canvas{min-height:188px;padding:16px;display:flex;flex-direction:column;gap:9px;justify-content:center;background:radial-gradient(600px 200px at 20% 0%,#1A2333,transparent 70%),var(--surface)}" +
+    ".d-row{display:flex;align-items:center;gap:10px;opacity:0;transform:translateX(-10px);animation:dIn .4s forwards}" +
+    "@keyframes dIn{to{opacity:1;transform:none}}" +
+    ".d-txt{font-size:13px;color:var(--ink-2);line-height:1.4}" +
+    ".d-tag{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;padding:3px 7px;border-radius:5px;background:var(--surface-3);color:var(--ink-3);flex:none;font-weight:700}" +
+    ".d-tag.coral{background:var(--coral-dim);color:var(--coral)}" +
+    ".d-tag.cyan{background:var(--cyan-dim);color:var(--cyan)}" +
+    ".d-cursor{color:var(--ink-3);font-size:13px;flex:none}" +
+    ".d-pin{width:13px;height:13px;border-radius:50% 50% 50% 2px;transform:rotate(-45deg);background:var(--coral);flex:none;box-shadow:0 0 10px #FF6B5799}" +
+    ".d-prompt{font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--ink-4);text-align:center;margin:auto}";
+  document.head.appendChild(demoStyle);
+
+  function playScene(n){
+    const canvas = document.getElementById("d" + n);
+    if (!canvas) return;
+    canvas.innerHTML = "";
+    const steps = SCENES[n];
+    steps.forEach((st, i) => {
+      setTimeout(() => {
+        const d = document.createElement("div");
+        d.innerHTML = st.html;
+        const row = d.firstElementChild;
+        row.style.animationDelay = "0s";
+        canvas.appendChild(row);
+        if (st.s && Sound[st.s]) Sound[st.s]();
+      }, reduced ? 0 : i * 620);
+    });
+  }
+
+  document.querySelectorAll("[data-play]").forEach(b => {
+    b.addEventListener("click", () => playScene(b.dataset.play));
+  });
+
+  // auto-play each scene once when it scrolls into view
+  if ("IntersectionObserver" in window) {
+    const dio = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (!e.isIntersecting) return;
+        const n = e.target.dataset.demo;
+        dio.unobserve(e.target);
+        setTimeout(() => playScene(n), 180 * Number(n));
+      });
+    }, { threshold: .4 });
+    document.querySelectorAll(".demo-canvas").forEach(c => {
+      c.innerHTML = '<div class="d-prompt">▶ scroll in to play</div>';
+      dio.observe(c);
+    });
+  }
+
+  /* ─────────── copy snippet ─────────── */
+  const copyBtn = document.getElementById("copyBtn");
+  copyBtn.addEventListener("click", () => {
+    const text = '<script src="https://syncup.aurocode.in/widget.js" data-project="your-project-key" data-api="https://syncup.aurocode.in/api" async><\/script>';
+    const done = () => {
+      copyBtn.textContent = "COPIED"; copyBtn.classList.add("done"); Sound.pop();
+      setTimeout(() => { copyBtn.textContent = "COPY"; copyBtn.classList.remove("done"); }, 1900);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done).catch(done);
+    } else { done(); }
+  });
+
+  /* subtle click feedback on primary actions */
+  document.querySelectorAll(".btn, .cta-sm").forEach(b => {
+    b.addEventListener("click", () => Sound.click());
+  });
+})();
+</script>
+
+<script>
+/* Same origin as the app, so we can tell whether this visitor is already
+   signed in and point them at their dashboard instead of the login form. */
+(function(){
+  var signedIn = false;
+  try { signedIn = !!localStorage.getItem("pm_token"); } catch(e){}
+  if (!signedIn) return;
+  document.querySelectorAll("[data-app-cta]").forEach(function(el){
+    el.textContent = "Open dashboard";
+    el.setAttribute("href", "/dashboard");
+  });
+  var login = document.querySelector("[data-login]");
+  if (login) { login.textContent = "Dashboard"; login.setAttribute("href", "/dashboard"); }
+})();
+</script>
+
+</body>
+</html>

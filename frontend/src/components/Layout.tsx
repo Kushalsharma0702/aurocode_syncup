@@ -9,7 +9,7 @@ import NotificationBell from "./NotificationBell";
 import StatusBanner from "./StatusBanner";
 
 const baseNav = [
-  { to: "/", label: "Dashboard", icon: "M3 12l9-9 9 9M5 10v10a1 1 0 001 1h3v-6h6v6h3a1 1 0 001-1V10" },
+  { to: "/dashboard", label: "Dashboard", icon: "M3 12l9-9 9 9M5 10v10a1 1 0 001 1h3v-6h6v6h3a1 1 0 001-1V10" },
   { to: "/projects", label: "Projects", icon: "M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" },
   { to: "/tasks", label: "Tasks", icon: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" },
   { to: "/comments", label: "Comments", icon: "M8 10h8m-8 4h4m-6 6l-3 1 1-3.5A8 8 0 1121 12a8 8 0 01-9 7.9L7 20z" },

@@ -24,7 +24,7 @@ export default function MagicLink() {
     if (!token || attempted.current) return;
     attempted.current = true;
     loginWithLink(token)
-      .then(() => navigate("/", { replace: true }))
+      .then(() => navigate("/dashboard", { replace: true }))
       .catch((err) => setError(apiErrorMessage(err)));
   }, [token, loginWithLink, navigate]);
 

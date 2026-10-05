@@ -259,6 +259,13 @@ check() {
 BAD_LOGIN=$(mktemp); printf '{"username":"__deploycheck__","password":"__nope__"}' > "$BAD_LOGIN"
 
 check "site serving"        "$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "https://$DOMAIN/")" "200"
+# "/" must be the marketing page, and every other path must still reach the
+# SPA — otherwise client magic links and report links break.
+check "landing on /"        "$(curl -s --max-time 15 "https://$DOMAIN/" | grep -c 'data-app-cta')" "3"
+check "app on /login"       "$(curl -s --max-time 15 "https://$DOMAIN/login" | grep -c 'id="root"')" "1"
+check "app on /dashboard"   "$(curl -s --max-time 15 "https://$DOMAIN/dashboard" | grep -c 'id="root"')" "1"
+check "magic links intact"  "$(curl -s --max-time 15 "https://$DOMAIN/go/sometoken" | grep -c 'id="root"')" "1"
+check "report links intact" "$(curl -s --max-time 15 "https://$DOMAIN/r/sometoken" | grep -c 'id="root"')" "1"
 check "TLS certificate"     "$(curl -s -o /dev/null -w '%{ssl_verify_result}' --max-time 15 "https://$DOMAIN/")" "0"
 check "api health"          "$(curl -s --max-time 15 "https://$DOMAIN/api/health" | grep -o ok)" "ok"
 check "healthz + database"  "$(curl -s --max-time 15 "https://$DOMAIN/healthz" | grep -o '\"database\":\"ok\"')" '"database":"ok"'
