@@ -262,6 +262,9 @@ check "site serving"        "$(curl -s -o /dev/null -w '%{http_code}' --max-time
 # "/" must be the marketing page, and every other path must still reach the
 # SPA — otherwise client magic links and report links break.
 check "landing on /"        "$(curl -s --max-time 15 "https://$DOMAIN/" | grep -c 'data-app-cta')" "3"
+# Guards against shipping the wrong landing design: the primary page is the
+# aurora one, identified by its ambient backdrop element.
+check "primary design live" "$(curl -s --max-time 15 "https://$DOMAIN/" | grep -c 'class="aurora"')" "1"
 check "app on /login"       "$(curl -s --max-time 15 "https://$DOMAIN/login" | grep -c 'id="root"')" "1"
 check "app on /dashboard"   "$(curl -s --max-time 15 "https://$DOMAIN/dashboard" | grep -c 'id="root"')" "1"
 check "magic links intact"  "$(curl -s --max-time 15 "https://$DOMAIN/go/sometoken" | grep -c 'id="root"')" "1"
