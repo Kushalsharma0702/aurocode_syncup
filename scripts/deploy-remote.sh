@@ -261,7 +261,7 @@ BAD_LOGIN=$(mktemp); printf '{"username":"__deploycheck__","password":"__nope__"
 check "site serving"        "$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "https://$DOMAIN/")" "200"
 # "/" must be the marketing page, and every other path must still reach the
 # SPA — otherwise client magic links and report links break.
-check "landing on /"        "$(curl -s --max-time 15 "https://$DOMAIN/" | grep -c 'data-app-cta')" "3"
+check "landing on /"        "$(curl -s --max-time 15 "https://$DOMAIN/" | grep -c 'data-app-cta>')" "3"
 # Guards against shipping the wrong landing design: the primary page is the
 # WebGL 3D edition, identified by its scene stage element.
 check "primary design live" "$(curl -s --max-time 15 "https://$DOMAIN/" | grep -c 'id="gl-stage"')" "1"
