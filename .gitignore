@@ -18,3 +18,4 @@ frontend/tsconfig.tsbuildinfo
 # Misc
 .DS_Store
 *.log
+.deploy-backups/

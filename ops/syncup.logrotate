@@ -3,6 +3,9 @@
 # SyncUp writes directly.
 
 /var/log/syncup-backup.log {
+    # Required when the parent directory is not root-owned; logrotate refuses
+    # to rotate into a group-writable directory otherwise.
+    su ubuntu ubuntu
     weekly
     rotate 8
     compress
