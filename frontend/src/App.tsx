@@ -49,10 +49,12 @@ function AuthenticatedApp({ user, loading }: { user: ReturnType<typeof useAuth>[
     <Routes>
       <Route path="/login" element={<Navigate to="/dashboard" replace />} />
       <Route element={<Layout />}>
-        {/* "/" is the public landing page (served by nginx). The dashboard
-            has its own path so a full page load lands on the app, not the
-            marketing site. "/" stays mapped for in-app back navigation. */}
-        <Route path="/" element={<Dashboard />} />
+        {/* "/" is the public landing page, served by nginx before the SPA
+            ever loads. If the app does end up mounted at "/" — a browser
+            holding a stale index.html from before the split, or in-app back
+            navigation — bounce to /dashboard rather than render the dashboard
+            at the bare domain and look like the homepage. */}
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/projects" element={<Projects />} />
         <Route path="/projects/:id" element={<ProjectDetail />} />
